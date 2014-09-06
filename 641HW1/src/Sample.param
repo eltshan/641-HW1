@@ -1,0 +1,4 @@
+queryFilePath=C:\Users\shen\Dropbox\class\SearchEngine\queriesOr.txt
+indexPath=D:\download\index-toyDocs\index
+trecEvalOutputPath=Sample.teIn
+retrievalAlgorithm=UnrankedBoolean
