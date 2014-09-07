@@ -34,9 +34,6 @@ public abstract class QryopSl extends Qryop {
 				this.args.set(i, new QryopSlScore(this.args.get(i)));
 
 			DaaTPtr ptri = new DaaTPtr();
-			// if (r instanceof RetrievalModelRankedBoolean)
-			// ptri.invList = this.args.get(i).evaluate(r).invertedList;
-			// else
 			ptri.invList = null;
 			ptri.scoreList = this.args.get(i).evaluate(r).docScores;
 			ptri.nextDoc = 0;

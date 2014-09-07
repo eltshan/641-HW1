@@ -12,8 +12,6 @@
 import java.io.*;
 import java.util.*;
 
-import javax.naming.spi.DirStateFactory.Result;
-
 import org.apache.lucene.analysis.Analyzer.TokenStreamComponents;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -89,8 +87,14 @@ public class QryEval {
 		QryReader qryReader = new QryReader(params.get("queryFilePath"));
 		DocLengthStore s = new DocLengthStore(READER);
 
-		RetrievalModel model = new RetrievalModelUnrankedBoolean();
-		// RetrievalModel model = new RetrievalModelRankedBoolean();
+		// RetrievalModel model = new RetrievalModelUnrankedBoolean();
+		RetrievalModel model = null;
+		if (params.get("retrievalAlgorithm").equalsIgnoreCase("RankedBoolean"))
+			model = new RetrievalModelRankedBoolean();
+		else if (params.get("retrievalAlgorithm").equalsIgnoreCase(
+				"UnrankedBoolean"))
+			model = new RetrievalModelUnrankedBoolean();
+
 		// open query
 
 		/*
@@ -131,78 +135,54 @@ public class QryEval {
 		 * and form the query tree automatically.
 		 */
 
-		// A one-word query.
-		// printResults("pea", (new QryopSlScore(new QryopIlTerm(
-		// tokenizeQuery("pea")[0]))).evaluate(model));
-
-		// A more complex query.
-		// printResults("#AND (aparagus broccoli cauliflower #SYN(peapods peas))",
-		// (new QryopSlAnd(new QryopIlTerm(tokenizeQuery("asparagus")[0]),
-		// new QryopIlTerm(tokenizeQuery("broccoli")[0]),
-		// new QryopIlTerm(tokenizeQuery("cauliflower")[0]),
-		// new QryopIlSyn(new QryopIlTerm(
-		// tokenizeQuery("peapods")[0]), new QryopIlTerm(
-		// tokenizeQuery("peas")[0])))).evaluate(model));
-
-		// A different way to create the previous query. This doesn't use
-		// a stack, but it may make it easier to see how you would parse a
-		// query with a stack-based architecture.
-		// Qryop op1 = new QryopSlAnd();
-		// op1.add(new QryopIlTerm(tokenizeQuery("asparagus")[0]));
-		// op1.add(new QryopIlTerm(tokenizeQuery("broccoli")[0]));
-		// op1.add(new QryopIlTerm(tokenizeQuery("cauliflower")[0]));
-		// Qryop op2 = new QryopIlSyn();
-		// op2.add(new QryopIlTerm(tokenizeQuery("peapods")[0]));
-		// op2.add(new QryopIlTerm(tokenizeQuery("peas")[0]));
-		// op1.add(op2);
-		// printResults("#AND (aparagus broccoli cauliflower #SYN(peapods peas))",
-		// op1.evaluate(model));
-
 		// Using the example query parser. Notice that this does no
 		// lexical processing of query terms. Add that to the query
 		// parser.
 
-		String queryteString = "#or(apple bananas)";// "#near/5(Apple bananas)";
-		Qryop qTree1;
-		qTree1 = parseQuery(queryteString);
-		printResults(queryteString, qTree1.evaluate(model), 0);
-		// String query = null;
-		// while ((query = qryReader.nextQuery()) != null) {
-		// System.out.println("query is: " + query);
-		// // String[] tmp = tokenizeQuery(query);
-		// // for (String aaString : tmp)
-		// // System.out.println(aaString);
-		// String[] tmp = query.split(":");
-		// int queryID = Integer.parseInt(tmp[0]);
-		// query = tmp[1];
-		// System.out.println("ID is:" + queryID + " query is:" + query);
-		// Qryop qTree;
-		// qTree = parseQuery(query);
-		// printResults(query, qTree.evaluate(model), queryID);
-		// }
+		// String queryteString = "#or(apple bananas)";//
+		// "#near/5(Apple bananas)";
+		// Qryop qTree1;
+		// qTree1 = parseQuery(queryteString);
+		// printResults(queryteString, qTree1.evaluate(model), 0);
+		// writeResults(queryteString, qTree1.evaluate(model), 0,
+		// params.get("trecEvalOutputPath"));
+		String query = null;
+		BufferedWriter writer = new BufferedWriter(new FileWriter(new File(
+				params.get("trecEvalOutputPath"))));
+		while ((query = qryReader.nextQuery()) != null) {
+			String[] tmp = query.split(":");
+			int queryID = Integer.parseInt(tmp[0]);
+			query = tmp[1];
+			System.out.println("ID is:" + queryID + " query is:" + query);
+			Qryop qTree;
+			qTree = parseQuery(query);
+			// printResults(query, qTree.evaluate(model), queryID);
+			writeResults(query, qTree.evaluate(model), queryID, writer);
+		}
+		writer.close();
 		/*
 		 * Create the trec_eval output. Your code should write to the file
 		 * specified in the parameter file, and it should write the results that
 		 * you retrieved above. This code just allows the testing infrastructure
 		 * to work on QryEval.
 		 */
-		BufferedWriter writer = null;
-
-		try {
-			writer = new BufferedWriter(new FileWriter(new File("teval.in")));
-
-			writer.write("1 Q0 clueweb09-enwp01-75-20596 1 1.0 run-1");
-			writer.write("1 Q0 clueweb09-enwp01-58-04573 2 0.9 run-1");
-			writer.write("1 Q0 clueweb09-enwp01-24-11888 3 0.8 run-1");
-			writer.write("2 Q0 clueweb09-enwp00-70-20490 1 0.9 run-1");
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				writer.close();
-			} catch (Exception e) {
-			}
-		}
+		// BufferedWriter writer = null;
+		//
+		// try {
+		// writer = new BufferedWriter(new FileWriter(new File("teval.in")));
+		//
+		// writer.write("1 Q0 clueweb09-enwp01-75-20596 1 1.0 run-1");
+		// writer.write("1 Q0 clueweb09-enwp01-58-04573 2 0.9 run-1");
+		// writer.write("1 Q0 clueweb09-enwp01-24-11888 3 0.8 run-1");
+		// writer.write("2 Q0 clueweb09-enwp00-70-20490 1 0.9 run-1");
+		// } catch (Exception e) {
+		// e.printStackTrace();
+		// } finally {
+		// try {
+		// writer.close();
+		// } catch (Exception e) {
+		// }
+		// }
 
 		// Later HW assignments will use more RAM, so you want to be aware
 		// of how much memory your program uses.
@@ -299,7 +279,6 @@ public class QryEval {
 		while (tokens.hasMoreTokens()) {
 
 			token = tokens.nextToken();
-
 			if (token.matches("[ ,(\t\n\r]")) {
 				// Ignore most delimiters.
 			} else if (token.equalsIgnoreCase("#and")) {
@@ -346,20 +325,21 @@ public class QryEval {
 					tmp = token;
 				else
 					tmp = token.substring(0, token.lastIndexOf("."));
+				String tmps[] = tokenizeQuery(tmp);
+				if (tmps == null || tmps.length == 0)
+					continue;
+				tmp = tmps[0];
+
 				if (token.endsWith(".url"))
-					currentOp
-							.add(new QryopIlTerm(tokenizeQuery(tmp)[0], "url"));
+					currentOp.add(new QryopIlTerm(tmp, "url"));
 				else if (token.endsWith(".keywords"))
-					currentOp.add(new QryopIlTerm(tokenizeQuery(tmp)[0],
-							"keywords"));
+					currentOp.add(new QryopIlTerm(tmp, "keywords"));
 				else if (token.endsWith("title"))
-					currentOp.add(new QryopIlTerm(tokenizeQuery(tmp)[0],
-							"title"));
+					currentOp.add(new QryopIlTerm(tmp, "title"));
 				else if (token.endsWith("inlink"))
-					currentOp.add(new QryopIlTerm(tokenizeQuery(tmp)[0],
-							"inlink"));
+					currentOp.add(new QryopIlTerm(tmp, "inlink"));
 				else
-					currentOp.add(new QryopIlTerm(tokenizeQuery(tmp)[0]));
+					currentOp.add(new QryopIlTerm(tmp));
 			}
 		}
 
@@ -396,6 +376,42 @@ public class QryEval {
 				.println("Memory used:  "
 						+ ((runtime.totalMemory() - runtime.freeMemory()) / (1024L * 1024L))
 						+ " MB");
+	}
+
+	public static void writeResults(String queryName, QryResult result,
+			int queryID, BufferedWriter writer) throws IOException {
+		System.out.println(queryName + ":  ");
+		if (result.docScores.scores.size() < 1) {
+			System.out.println("\tNo results.");
+		} else {
+
+			Collections.sort(result.docScores.scores,
+					new Comparator<ScoreList.ScoreListEntry>() {
+
+						@Override
+						public int compare(ScoreList.ScoreListEntry o1,
+								ScoreList.ScoreListEntry o2) {
+							// TODO Auto-generated method stub
+							if (o1.getScore() < o2.getScore())
+								return 1;
+							if (o1.getScore() > o2.getScore())
+								return -1;
+							if (o1.getDocid() > o2.getDocid())
+								return 1;
+							else
+								return -1;
+						};
+
+					});
+
+			for (int i = 0; i < result.docScores.scores.size(); i++) {
+				writer.write(queryID + "\t" + "Q0" + "\t"
+						+ getExternalDocid(result.docScores.getDocid(i)) + "\t"
+						+ i + "\t" + result.docScores.getDocidScore(i) + "\t"
+						+ "run-1");
+				writer.write("\n");
+			}
+		}
 	}
 
 	/**

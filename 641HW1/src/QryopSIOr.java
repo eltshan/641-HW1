@@ -26,9 +26,9 @@ public class QryopSIOr extends QryopSl {
 	@Override
 	public QryResult evaluate(RetrievalModel r) throws IOException {
 		// TODO Auto-generated method stub
-		if (r instanceof RetrievalModelUnrankedBoolean)
+		//if (r instanceof RetrievalModelUnrankedBoolean)
 			return (evaluateBoolean(r));
-		return null;
+		//return null;
 	}
 
 	public QryResult evaluateBoolean(RetrievalModel r) throws IOException {

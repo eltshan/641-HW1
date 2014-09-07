@@ -56,10 +56,10 @@ public class QryopSlScore extends QryopSl {
 	 */
 	public QryResult evaluate(RetrievalModel r) throws IOException {
 
-		if (r instanceof RetrievalModelUnrankedBoolean)
-			return (evaluateBoolean(r));
+		// if (r instanceof RetrievalModelUnrankedBoolean)
+		return (evaluateBoolean(r));
 
-		return null;
+		// return null;
 	}
 
 	/**
@@ -84,13 +84,13 @@ public class QryopSlScore extends QryopSl {
 
 			// DIFFERENT RETRIEVAL MODELS IMPLEMENT THIS DIFFERENTLY.
 			// Unranked Boolean. All matching documents get a score of 1.0.
-			// if (r instanceof RetrievalModelRankedBoolean) {
-			result.docScores.add(result.invertedList.postings.get(i).docid,
-					result.invertedList.getTf(i));
+			if (r instanceof RetrievalModelRankedBoolean) {
+				result.docScores.add(result.invertedList.postings.get(i).docid,
+						result.invertedList.getTf(i));
 
-			// } else
-			// result.docScores.add(result.invertedList.postings.get(i).docid,
-			// (float) 1.0);
+			} else
+				result.docScores.add(result.invertedList.postings.get(i).docid,
+						(float) 1.0);
 		}
 
 		// The SCORE operator should not return a populated inverted list.
