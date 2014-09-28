@@ -1,4 +1,9 @@
-queryFilePath=C:\Users\shen\Dropbox\class\SearchEngine\queriesAnd.txt
+queryFilePath=C:\Users\shen\git\641-HW1\641HW1\files\qry
 indexPath=D:\download\index-1.0\index
-trecEvalOutputPath=output2.txt
+trecEvalOutputPath=newOutpuMix1002.txt
 retrievalAlgorithm=RankedBoolean
+BM25:k_1= 1.2
+BM25:b= 0.75
+BM25:k_3= 0
+Indri:mu= Acceptable values are integers >= 0.
+Indri:lambda= Acceptable values are between 0.0 and 1.0.

@@ -88,9 +88,12 @@ public class QryopSlScore extends QryopSl {
 				result.docScores.add(result.invertedList.postings.get(i).docid,
 						result.invertedList.getTf(i));
 
-			} else
+			} else if (r instanceof RetrievalModelUnrankedBoolean)
 				result.docScores.add(result.invertedList.postings.get(i).docid,
 						(float) 1.0);
+			else if (r instanceof RetrievalModelBM25) {
+				
+			}
 		}
 
 		// The SCORE operator should not return a populated inverted list.

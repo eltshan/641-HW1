@@ -20,10 +20,10 @@ public class QryopIlNear extends QryopIl {
 	@Override
 	public QryResult evaluate(RetrievalModel r) throws IOException {
 		// TODO Auto-generated method stub
-		if (r instanceof RetrievalModelUnrankedBoolean)
-			return (evaluateBoolean(r));
+		// //if (r instanceof RetrievalModelUnrankedBoolean)
+		return (evaluateBoolean(r));
 
-		return null;
+		// return null;
 	}
 
 	public QryResult evaluateBoolean(RetrievalModel r) throws IOException {
@@ -48,8 +48,6 @@ public class QryopIlNear extends QryopIl {
 		EVALUATEDOCUMENTS: for (; ptr0.nextDoc < ptr0.invList.postings.size(); ptr0.nextDoc++) {
 
 			int ptr0Docid = ptr0.invList.getDocid(ptr0.nextDoc);
-			double docScore = 1.0;
-			docPos[0] = ptr0.invList.getDocid(ptr0.nextDoc);
 			// Do the other query arguments have the ptr0Docid?
 
 			for (int j = 1; j < this.daatPtrs.size(); j++) {
@@ -69,43 +67,61 @@ public class QryopIlNear extends QryopIl {
 					}
 				}
 			}
+			docPos[0] = ptr0.nextDoc;
 
 			// The ptr0Docid matched all query arguments, so save it.
-			mergeTwoInvertedList(docPos, n, result, ptr0Docid);
+			mergeInvertedList(docPos, n, result, ptr0Docid);
 			// result.docScores.add(ptr0Docid, docScore);
 
 		}
-		// /////////////
 
-		// ///////////
 		freeDaaTPtrs();
 
 		return result;
 	}
 
-	private void mergeTwoInvertedList(int[] docPos, int n, QryResult result,
+	/**
+	 * Merge inverted lists that contains the required term
+	 * 
+	 * @param docPos
+	 *            Each inverted list has its own pointer indicating current
+	 *            position in given doc
+	 * @param n
+	 * @param result
+	 * @param docID
+	 *            For different inverted list, the same document stored in
+	 *            different position
+	 */
+	private void mergeInvertedList(int[] docPos, int n, QryResult result,
 			int docID) {
+		double docScore = 0.0;
 		DaaTPtr ptr0 = this.daatPtrs.get(0);
 		int curPos[] = new int[docPos.length];
 		if (docPos[0] >= ptr0.invList.postings.size())
 			return;
+
 		for (int i = 0; i < ptr0.invList.postings.get(docPos[0]).positions
-				.size(); i++) {// each
-			// element
-			// System.out.println("i is:" + i + " " + "total is:"
-			// + ptr0.invList.postings.get(docPos[0]).positions.size()); // in
-			// position
+				.size(); i++) {
+			// for each position i in the ptr0
+			// set current position to i
+			DaaTPtr ptrLast = ptr0;
 			curPos[0] = i;
 			int j;
 			for (j = 1; j < this.daatPtrs.size(); j++) {
+				// for each daatPtr
 				DaaTPtr ptrj = this.daatPtrs.get(j);
+
 				int tmpCurPos = ptrj.invList.postings.get(docPos[j]).positions
 						.get(curPos[j]);
-				if (ptrj.invList.postings.get(docPos[j - 1]).positions.size() <= curPos[j - 1]) {
+
+				if (ptrLast.invList.postings.get(docPos[j - 1]).positions
+						.size() <= curPos[j - 1]) {
 					break;
 				}
-				int tmpLasPos = ptrj.invList.postings.get(docPos[j - 1]).positions
+				int tmpLasPos = ptrLast.invList.postings.get(docPos[j - 1]).positions
 						.get(curPos[j - 1]);
+
+				ptrLast = ptrj;
 
 				while (tmpCurPos < tmpLasPos) {// current < last
 
@@ -119,17 +135,19 @@ public class QryopIlNear extends QryopIl {
 
 				}
 
-				if (tmpCurPos - tmpLasPos >= n) {
+				if (tmpCurPos - tmpLasPos > n) {
 					break;
 				}
 			}
-
+			// when j == daatPtrs.size, it means that all daatPtrs has a
+			// position matched, therefore score++
 			if (j == this.daatPtrs.size()) {
-				// TODO: add the result
-				result.docScores.add(docID, 0.1);
-				break;
+				docScore++;
+
 			}
 		}// end of outer loop
+		if (docScore > 0)
+			result.docScores.add(docID, docScore);
 
 	}
 

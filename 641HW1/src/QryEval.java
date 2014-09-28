@@ -11,6 +11,10 @@
 
 import java.io.*;
 import java.util.*;
+import java.util.Map.Entry;
+
+import javax.naming.spi.DirStateFactory.Result;
+import javax.swing.text.html.parser.Entity;
 
 import org.apache.lucene.analysis.Analyzer.TokenStreamComponents;
 import org.apache.lucene.analysis.TokenStream;
@@ -30,7 +34,9 @@ public class QryEval {
 	// isn't great programming style, but the alternative is for every
 	// query operator to store or pass this value, which creates its
 	// own headaches.
-
+	private static int topK = 100;
+	// dummy output when no result is retrived
+	private static String dummyOutput = "10 Q0 dummy 1 0 run-1";
 	public static IndexReader READER;
 
 	// Create and configure an English analyzer that will be used for
@@ -57,6 +63,7 @@ public class QryEval {
 			System.exit(1);
 		}
 
+		double startTime = System.currentTimeMillis();
 		// read in the parameter file; one parameter per line in format of
 		// key=value
 		Map<String, String> params = new HashMap<String, String>();
@@ -94,31 +101,12 @@ public class QryEval {
 		else if (params.get("retrievalAlgorithm").equalsIgnoreCase(
 				"UnrankedBoolean"))
 			model = new RetrievalModelUnrankedBoolean();
-
-		// open query
-
-		/*
-		 * The code below is an unorganized set of examples that show you
-		 * different ways of accessing the index. Some of these are only useful
-		 * in HW2 or HW3.
-		 */
-
-		// // Lookup the document length of the body field of doc 0.
-		// System.out.println(s.getDocLength("body", 0));
-		//
-		// // How to use the term vector.
-		// TermVector tv = new TermVector(1, "body");
-		//
-		// for (int i = 0; i < tv.stemsLength(); i++) {
-		// System.out.println(tv.stemString(i));
-		// System.out.println("position" + tv.stemAt(i));
-		//
-		// }
-		// System.out.println(tv.stemString(100)); // get the string for the
-		// 100th stem
-		// System.out.println(tv.stemDf(100)); // get its df
-		// System.out.println(tv.totalStemFreq(100)); // get its ctf
-
+		else if (params.get("retrievalAlgorithm").equalsIgnoreCase("BM25")) {
+			model = new RetrievalModelBM25();
+			model.setParameter("k_1", params.get("BM25:k_1"));
+			model.setParameter("b", params.get("BM25:b"));
+			model.setParameter("k_3", params.get("BM25:k_3"));
+		}
 		/**
 		 * The index is open. Start evaluating queries. The examples below show
 		 * query trees for two simple queries. These are meant to illustrate how
@@ -134,61 +122,37 @@ public class QryEval {
 		 * Modify the software so that you read a query from a file, parse it,
 		 * and form the query tree automatically.
 		 */
+		DocLengthStore dls = new DocLengthStore(READER);
 
-		// Using the example query parser. Notice that this does no
-		// lexical processing of query terms. Add that to the query
-		// parser.
+		String queryNow = "cheap internet";
+		String[] tmpa = queryNow.split(":");
+		int queryIDNow = Integer.parseInt(tmpa[0]);
+		queryNow = tmpa[1];
 
-		// String queryteString = "#or(apple bananas)";//
-		// "#near/5(Apple bananas)";
-		// Qryop qTree1;
-		// qTree1 = parseQuery(queryteString);
-		// printResults(queryteString, qTree1.evaluate(model), 0);
-		// writeResults(queryteString, qTree1.evaluate(model), 0,
-		// params.get("trecEvalOutputPath"));
-		String query = null;
-		BufferedWriter writer = new BufferedWriter(new FileWriter(new File(
-				params.get("trecEvalOutputPath"))));
-		while ((query = qryReader.nextQuery()) != null) {
-			String[] tmp = query.split(":");
-			int queryID = Integer.parseInt(tmp[0]);
-			query = tmp[1];
-			System.out.println("ID is:" + queryID + " query is:" + query);
-			Qryop qTree;
-			qTree = parseQuery(query);
-			// printResults(query, qTree.evaluate(model), queryID);
-			writeResults(query, qTree.evaluate(model), queryID, writer);
-		}
-		writer.close();
-		/*
-		 * Create the trec_eval output. Your code should write to the file
-		 * specified in the parameter file, and it should write the results that
-		 * you retrieved above. This code just allows the testing infrastructure
-		 * to work on QryEval.
-		 */
-		// BufferedWriter writer = null;
+		// System.out.println("ID is:" + queryID + " query is:" + query);
+		Qryop qTree;
+		qTree = parseQuery(queryNow);
+		QryResult Result = qTree.evaluate(model);
+
+		// BufferedWriter writer = new BufferedWriter(new FileWriter(new File(
+		// params.get("trecEvalOutputPath"))));
+		// // for each input query
+		// String query = null;
+		// while ((query = qryReader.nextQuery()) != null) {
+		// String[] tmp = query.split(":");
+		// int queryID = Integer.parseInt(tmp[0]);
+		// query = tmp[1];
 		//
-		// try {
-		// writer = new BufferedWriter(new FileWriter(new File("teval.in")));
-		//
-		// writer.write("1 Q0 clueweb09-enwp01-75-20596 1 1.0 run-1");
-		// writer.write("1 Q0 clueweb09-enwp01-58-04573 2 0.9 run-1");
-		// writer.write("1 Q0 clueweb09-enwp01-24-11888 3 0.8 run-1");
-		// writer.write("2 Q0 clueweb09-enwp00-70-20490 1 0.9 run-1");
-		// } catch (Exception e) {
-		// e.printStackTrace();
-		// } finally {
-		// try {
+		// // System.out.println("ID is:" + queryID + " query is:" + query);
+		// Qryop qTree;
+		// qTree = parseQuery(query);
+		// QryResult Result = qTree.evaluate(model);
+		// writeResults(query, qTree.evaluate(model), queryID, writer, model);
+		// }
 		// writer.close();
-		// } catch (Exception e) {
-		// }
-		// }
-
-		// Later HW assignments will use more RAM, so you want to be aware
-		// of how much memory your program uses.
-
-		printMemoryUsage(false);
-
+		//
+		// printMemoryUsage(false);
+		// System.out.println(System.currentTimeMillis() - startTime);
 	}
 
 	/**
@@ -320,6 +284,9 @@ public class QryEval {
 				// NOTE: You should do lexical processing of the token before
 				// creating the query term, and you should check to see whether
 				// the token specifies a particular field (e.g., apple.title).
+
+				// some times after lexical processing I get nothing. In this
+				// case the term should be ignored
 				String tmp;
 				if (token.lastIndexOf(".") == -1)
 					tmp = token;
@@ -330,13 +297,14 @@ public class QryEval {
 					continue;
 				tmp = tmps[0];
 
+				// add field indicator
 				if (token.endsWith(".url"))
 					currentOp.add(new QryopIlTerm(tmp, "url"));
 				else if (token.endsWith(".keywords"))
 					currentOp.add(new QryopIlTerm(tmp, "keywords"));
-				else if (token.endsWith("title"))
+				else if (token.endsWith(".title"))
 					currentOp.add(new QryopIlTerm(tmp, "title"));
-				else if (token.endsWith("inlink"))
+				else if (token.endsWith(".inlink"))
 					currentOp.add(new QryopIlTerm(tmp, "inlink"));
 				else
 					currentOp.add(new QryopIlTerm(tmp));
@@ -378,38 +346,98 @@ public class QryEval {
 						+ " MB");
 	}
 
+	/**
+	 * write evaluate result to file
+	 * 
+	 * @param queryName
+	 * @param result
+	 * @param queryID
+	 * @param writer
+	 * @param model
+	 * @throws IOException
+	 */
 	public static void writeResults(String queryName, QryResult result,
-			int queryID, BufferedWriter writer) throws IOException {
-		System.out.println(queryName + ":  ");
+			int queryID, BufferedWriter writer, final RetrievalModel model)
+			throws IOException {
 		if (result.docScores.scores.size() < 1) {
-			System.out.println("\tNo results.");
+			writer.write(dummyOutput);
 		} else {
+			// comparator for score list. score will be the first key and name
+			// of external file is the second key
+			Comparator<ScoreList.ScoreListEntry> scoreComparator = new Comparator<ScoreList.ScoreListEntry>() {
 
-			Collections.sort(result.docScores.scores,
-					new Comparator<ScoreList.ScoreListEntry>() {
+				@Override
+				public int compare(ScoreList.ScoreListEntry o1,
+						ScoreList.ScoreListEntry o2) {
+					// TODO Auto-generated method stub
+					if (model instanceof RetrievalModelRankedBoolean) {
+						if (o1.getScore() < o2.getScore())
+							return -1;
+						if (o1.getScore() > o2.getScore())
+							return 1;
+					}
+					String A = null;
+					try {
+						A = getExternalDocid(o1.getDocid());
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					String B = null;
+					try {
+						B = getExternalDocid(o2.getDocid());
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					return B.compareTo(A);
 
-						@Override
-						public int compare(ScoreList.ScoreListEntry o1,
-								ScoreList.ScoreListEntry o2) {
-							// TODO Auto-generated method stub
-							if (o1.getScore() < o2.getScore())
-								return 1;
-							if (o1.getScore() > o2.getScore())
-								return -1;
-							if (o1.getDocid() > o2.getDocid())
-								return 1;
-							else
-								return -1;
-						};
+				};
 
-					});
+			};
+			// sort the whole score list will be intuituve way but it's slow.
+			// this optimization of using a minHeap reduce time complexity from
+			// O(nlogn) to O(nlogk)
+			PriorityQueue<ScoreList.ScoreListEntry> minHeap = new PriorityQueue<ScoreList.ScoreListEntry>(
+					topK, scoreComparator);
 
-			for (int i = 0; i < result.docScores.scores.size(); i++) {
-				writer.write(queryID + "\t" + "Q0" + "\t"
-						+ getExternalDocid(result.docScores.getDocid(i)) + "\t"
-						+ i + "\t" + result.docScores.getDocidScore(i) + "\t"
-						+ "run-1");
-				writer.write("\n");
+			for (ScoreList.ScoreListEntry entity : result.docScores.scores) {
+				if (minHeap.size() < topK)
+					minHeap.offer(entity);
+				else if (scoreComparator.compare(minHeap.peek(), entity) < 0) {
+					minHeap.remove();
+					minHeap.offer(entity);
+				}
+			}
+
+			int i = 0;
+			ScoreList.ScoreListEntry entity = null;
+			Stack<ScoreList.ScoreListEntry> stack = new Stack<ScoreList.ScoreListEntry>();
+			while ((entity = minHeap.poll()) != null) {
+				stack.push(entity);
+			}
+			if (model instanceof RetrievalModelRankedBoolean) {
+
+				while (!stack.isEmpty()) {
+					writer.write(queryID + " " + "Q0" + " "
+							+ getExternalDocid(stack.peek().getDocid()) + " "
+							+ (i + 1) + " " + stack.peek().getScore() + " "
+							+ "run-1");
+					writer.write("\n");
+					stack.pop();
+					i++;
+				}
+			}
+			if (model instanceof RetrievalModelUnrankedBoolean) {
+				while (!stack.isEmpty()) {
+					writer.write(queryID + " " + "Q0" + " "
+							+ getExternalDocid(stack.peek().getDocid()) + " "
+							+ (i + 1) + " " + 1.0 + " " + "run-1");
+					writer.write("\n");
+					stack.pop();
+					i++;
+
+				}
 			}
 		}
 	}
@@ -428,9 +456,10 @@ public class QryEval {
 	 *            Result object generated by {@link Qryop#evaluate()}.
 	 * @throws IOException
 	 */
-	static void printResults(String queryName, QryResult result, int queryID)
-			throws IOException {
-		System.out.println(queryName + ":  ");
+	static void printResults(String queryName, QryResult result, int queryID,
+			final RetrievalModel model) throws IOException {
+		HashMap<Integer, Integer> x = new HashMap<Integer, Integer>();
+		// System.out.println(queryName + ":  ");
 		if (result.docScores.scores.size() < 1) {
 			System.out.println("\tNo results.");
 		} else {
@@ -442,21 +471,49 @@ public class QryEval {
 						public int compare(ScoreList.ScoreListEntry o1,
 								ScoreList.ScoreListEntry o2) {
 							// TODO Auto-generated method stub
-							if (o1.getScore() < o2.getScore())
-								return 1;
-							if (o1.getScore() > o2.getScore())
-								return -1;
-							if (o1.getDocid() > o2.getDocid())
-								return 1;
-							else
-								return -1;
+							if (model instanceof RetrievalModelRankedBoolean) {
+								if (o1.getScore() < o2.getScore())
+									return 1;
+								if (o1.getScore() > o2.getScore())
+									return -1;
+							}
+							String A = null;
+							try {
+								A = getExternalDocid(o1.getDocid());
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							String B = null;
+							try {
+								B = getExternalDocid(o2.getDocid());
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							return A.compareTo(B);
+
 						};
 
 					});
-			for (int i = 0; i < result.docScores.scores.size(); i++) {
-				System.out.println(queryID + "\t" + "Q0"
-						+ getExternalDocid(result.docScores.getDocid(i)) + ", "
-						+ result.docScores.getDocidScore(i) + "\t" + "run-1");
+			if (model instanceof RetrievalModelRankedBoolean) {
+
+				for (int i = 0; i < Math.min(result.docScores.scores.size(),
+						topK); i++) {
+					System.out.println(queryID + "\t" + "Q0" + "\t"
+							+ getExternalDocid(result.docScores.getDocid(i))
+							+ "\t" + (i + 1) + "\t"
+							+ result.docScores.getDocidScore(i) + "\t"
+							+ "run-1");
+				}
+			}
+			if (model instanceof RetrievalModelUnrankedBoolean) {
+				for (int i = 0; i < Math.min(result.docScores.scores.size(),
+						topK); i++) {
+					System.out.println(queryID + "\t" + "Q0" + "\t"
+							+ getExternalDocid(result.docScores.getDocid(i))
+							+ "\t" + (i + 1) + "\t" + 1.0 + "\t" + "run-1");
+				}
 			}
 		}
 	}

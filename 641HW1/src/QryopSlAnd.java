@@ -114,7 +114,7 @@ public class QryopSlAnd extends QryopSl {
 						break; // ptrj matches ptr0Docid
 				}
 				docScore = Math.min(docScore,
-						ptrj.scoreList.getDocidScore(ptr0.nextDoc));
+						ptrj.scoreList.getDocidScore(ptrj.nextDoc));
 
 			}
 
