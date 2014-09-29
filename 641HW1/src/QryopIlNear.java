@@ -99,7 +99,7 @@ public class QryopIlNear extends QryopIl {
 		int curPos[] = new int[docPos.length];
 		if (docPos[0] >= ptr0.invList.postings.size())
 			return;
-		ArrayList<Integer> positions = null;
+		ArrayList<Integer> positions = new ArrayList<Integer>();
 		for (int i = 0; i < ptr0.invList.postings.get(docPos[0]).positions
 				.size(); i++) {
 			// for each position i in the ptr0
@@ -107,11 +107,14 @@ public class QryopIlNear extends QryopIl {
 			DaaTPtr ptrLast = ptr0;
 			curPos[0] = i;
 			int j;
-			positions = new ArrayList<Integer>();
+
 			for (j = 1; j < this.daatPtrs.size(); j++) {
 				// for each daatPtr
 				DaaTPtr ptrj = this.daatPtrs.get(j);
-
+				if (ptrj.invList.postings.get(docPos[j]).positions
+						.size() <= curPos[j]) {
+					break;
+				}
 				int tmpCurPos = ptrj.invList.postings.get(docPos[j]).positions
 						.get(curPos[j]);
 
@@ -124,7 +127,7 @@ public class QryopIlNear extends QryopIl {
 
 				ptrLast = ptrj;
 
-				while (tmpCurPos < tmpLasPos) {// current < last
+				while (tmpCurPos <= tmpLasPos) {// current < last
 
 					if (curPos[j] + 1 >= ptrj.invList.postings.get(docPos[j]).positions
 							.size()) {
@@ -144,16 +147,21 @@ public class QryopIlNear extends QryopIl {
 			// position matched, therefore score++
 			if (j == this.daatPtrs.size()) {
 				docScore++;
+				for (int iii = 1; iii < curPos.length; iii++)
+					curPos[iii]++;
 				// not sure about the position, will come back later
 				positions.add(curPos[j - 1]);
 
 			}
 		}// end of outer loop
 
-		if (docScore > 0)
-			result.invertedList.appendPosting(docID, positions);
-		// result.docScores.add(docID, docScore);
+		if (docScore > 0) {
 
+			// result.docScores.add(docID, docScore);
+			result.invertedList.appendPosting(docID, positions);
+			positions = new ArrayList<Integer>();
+
+		}
 	}
 
 	@Override

@@ -1,7 +1,7 @@
 queryFilePath=C:\Users\shen\git\641-HW1\641HW1\files\testQry
-indexPath=D:\download\index-toyDocs\index
+indexPath=D:\download\index-1.0\index
 trecEvalOutputPath=tmpResult.txt
-retrievalAlgorithm=BM25
+retrievalAlgorithm=rankedboolean
 BM25:k_1= 1.2
 BM25:b= 0.75
 BM25:k_3= 0
