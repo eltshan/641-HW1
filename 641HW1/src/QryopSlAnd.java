@@ -48,7 +48,41 @@ public class QryopSlAnd extends QryopSl {
 			return (evaluateBoolean(r));
 		else if (r instanceof RetrievalModelRankedBoolean)
 			return (evaluateBoolean(r));
+		else if (r instanceof RetrievalModelIndri) {
+			RetrievalModelIndri rIndri = (RetrievalModelIndri) r;
+			return evaluateIndri(rIndri);
+		}
 		return null;
+	}
+
+	private QryResult evaluateIndri(RetrievalModelIndri r) throws IOException {
+		QryResult Qresult = args.get(0).evaluate(r);
+		QryResult result = new QryResult();
+
+		// hash docID with its score
+		HashMap<Integer, Double> map = new HashMap<Integer, Double>();
+		InvList inv;
+
+		// have calculate N and avg_doclen before everything
+
+		for (int i = 0; i < Qresult.invertedList.df; i++) {// for each term
+															// pointer
+			inv = Qresult.invertedList;
+
+			for (int j = 0; j < inv.postings.size(); j++) {// for each
+															// pointer
+				int docID = inv.getDocid(j);
+				map.put(docID, map.get(docID) * r.calculateScore(inv, j));
+			}
+		}
+		// total number of docs contains at least one term
+
+		for (int key : map.keySet()) {
+			result.docScores.add(key, map.get(key));
+		}
+		freeDaaTPtrs();
+
+		return result;
 	}
 
 	/**

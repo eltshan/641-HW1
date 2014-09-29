@@ -55,11 +55,23 @@ public class QryopSlScore extends QryopSl {
 	 * @throws IOException
 	 */
 	public QryResult evaluate(RetrievalModel r) throws IOException {
-
+		if (r instanceof RetrievalModelBM25) {
+			RetrievalModelBM25 r25 = (RetrievalModelBM25) r;
+			return evaluateBM25(r25);
+		}
+		if (r instanceof RetrievalModelIndri) {
+			RetrievalModelIndri rIndri = (RetrievalModelIndri) r;
+			return evaluateIndri(rIndri);
+		}
 		// if (r instanceof RetrievalModelUnrankedBoolean)
 		return (evaluateBoolean(r));
 
 		// return null;
+	}
+
+	private QryResult evaluateIndri(RetrievalModelIndri rIndri) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
@@ -92,7 +104,7 @@ public class QryopSlScore extends QryopSl {
 				result.docScores.add(result.invertedList.postings.get(i).docid,
 						(float) 1.0);
 			else if (r instanceof RetrievalModelBM25) {
-				
+
 			}
 		}
 
@@ -101,6 +113,42 @@ public class QryopSlScore extends QryopSl {
 
 		if (result.invertedList.df > 0)
 			result.invertedList = new InvList();
+
+		return result;
+	}
+
+	public QryResult evaluateBM25(RetrievalModelBM25 r) throws IOException {
+		// Initialization
+
+		QryResult Qresult = args.get(0).evaluate(r);
+		QryResult result = new QryResult();
+
+		if (Qresult.invertedList == null
+				|| Qresult.invertedList.postings.size() < 1)
+			return Qresult;
+		// hash docID with its score
+		HashMap<Integer, Double> map = new HashMap<Integer, Double>();
+		InvList inv;
+
+		for (int i = 0; i < Qresult.invertedList.df; i++) {// for each term
+															// pointer
+			inv = Qresult.invertedList;
+
+			for (int j = 0; j < inv.postings.size(); j++) {// for each
+															// pointer
+				int docID = inv.getDocid(j);
+				if (!map.containsKey(docID)) {
+					map.put(docID, 0.0);
+				}
+				map.put(docID, map.get(docID) + r.calculateScore(inv, j));
+			}
+		}
+		// total number of docs contains at least one term
+
+		for (int key : map.keySet()) {
+			result.docScores.add(key, map.get(key));
+		}
+		freeDaaTPtrs();
 
 		return result;
 	}
