@@ -56,33 +56,84 @@ public class QryopSlAnd extends QryopSl {
 	}
 
 	private QryResult evaluateIndri(RetrievalModelIndri r) throws IOException {
-		QryResult Qresult = args.get(0).evaluate(r);
+		// Initialization
+
+		allocDaaTPtrs(r);
+		// System.out.println("argsize: " + args.size());
 		QryResult result = new QryResult();
+		while (this.daatPtrs.size() > 0) {
 
-		// hash docID with its score
-		HashMap<Integer, Double> map = new HashMap<Integer, Double>();
-		InvList inv;
+			int nextDocid = getSmallestCurrentDocid();
 
-		// have calculate N and avg_doclen before everything
+			// Create a new posting that is the union of the posting lists
+			// that match the nextDocid.
+			double score = 1;
+			int docID = nextDocid;
+			for (int i = 0; i < this.daatPtrs.size(); i++) {
+				DaaTPtr ptri = this.daatPtrs.get(i);
 
-		for (int i = 0; i < Qresult.invertedList.df; i++) {// for each term
-															// pointer
-			inv = Qresult.invertedList;
+				if (ptri.scoreList.getDocid(ptri.nextDoc) == nextDocid) {
 
-			for (int j = 0; j < inv.postings.size(); j++) {// for each
-															// pointer
-				int docID = inv.getDocid(j);
-				map.put(docID, map.get(docID) * r.calculateScore(inv, j));
+					score *= ptri.scoreList.getDocidScore(ptri.nextDoc);
+					ptri.nextDoc++;
+
+				} else {
+
+					ArrayList<QryopSlScore> tmps = new ArrayList<QryopSlScore>();
+					helper(tmps, args.get(i));
+
+					double defaultScore = 1;
+					for (QryopSlScore xxx : tmps) {
+						defaultScore *= r.getDefaultScore(xxx.field, xxx.ctf,
+								docID);
+					}
+
+					score *= defaultScore;
+				}
+			}
+
+			// If a DaatPtr has reached the end of its list, remove it.
+			// The loop is backwards so that removing an arg does not
+			// interfere with iteration.
+			result.docScores.add(docID, Math.pow(score, 1.0 / daatPtrs.size()));
+			// System.out.println("daatSize " + daatPtrs.size());
+
+			for (int i = this.daatPtrs.size() - 1; i >= 0; i--) {
+				DaaTPtr ptri = this.daatPtrs.get(i);
+
+				if (ptri.nextDoc >= ptri.scoreList.scores.size()) {
+					this.daatPtrs.remove(i);
+				}
 			}
 		}
-		// total number of docs contains at least one term
 
-		for (int key : map.keySet()) {
-			result.docScores.add(key, map.get(key));
-		}
 		freeDaaTPtrs();
 
 		return result;
+
+	}
+
+	void helper(ArrayList<QryopSlScore> tmps, Qryop op) {
+		if (op instanceof QryopSlScore) {
+			tmps.add((QryopSlScore) op);
+		} else {
+			for (int i = 0; i < op.args.size(); i++) {
+				helper(tmps, op.args.get(i));
+			}
+		}
+	}
+
+	public int getSmallestCurrentDocid() {
+
+		int nextDocid = Integer.MAX_VALUE;
+
+		for (int i = 0; i < this.daatPtrs.size(); i++) {
+			DaaTPtr ptri = this.daatPtrs.get(i);
+			if (nextDocid > ptri.scoreList.getDocid(ptri.nextDoc))
+				nextDocid = ptri.scoreList.getDocid(ptri.nextDoc);
+		}
+
+		return (nextDocid);
 	}
 
 	/**

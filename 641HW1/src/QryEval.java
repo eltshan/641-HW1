@@ -11,11 +11,6 @@
 
 import java.io.*;
 import java.util.*;
-import java.util.Map.Entry;
-
-import javax.management.modelmbean.ModelMBean;
-import javax.naming.spi.DirStateFactory.Result;
-import javax.swing.text.html.parser.Entity;
 
 import org.apache.lucene.analysis.Analyzer.TokenStreamComponents;
 import org.apache.lucene.analysis.TokenStream;
@@ -25,6 +20,8 @@ import org.apache.lucene.index.*;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+
+import utiles.*;
 
 public class QryEval {
 
@@ -113,41 +110,20 @@ public class QryEval {
 			model = model25;
 		} else if (params.get("retrievalAlgorithm").equalsIgnoreCase("indri")) {
 			RetrievalModelIndri modelAndri = new RetrievalModelIndri();
+			modelAndri.setDls(new DocLengthStore(READER));
+			modelAndri
+					.setLambda(Double.parseDouble(params.get("Indri:lambda")));
+			modelAndri.setMu(Double.parseDouble(params.get("Indri:mu")));
+			model = modelAndri;
 			// modelAndri.setParameter("mu", params.get(arg0))
 		}
-		/**
-		 * The index is open. Start evaluating queries. The examples below show
-		 * query trees for two simple queries. These are meant to illustrate how
-		 * query nodes are created and connected. However your software will not
-		 * create queries like this. Your software will use a query parser. See
-		 * parseQuery.
-		 * 
-		 * The general pattern is to tokenize the query term (so that it gets
-		 * converted to lowercase, stopped, stemmed, etc), create a Term node to
-		 * fetch the inverted list, create a Score node to convert an inverted
-		 * list to a score list, evaluate the query, and print results.
-		 * 
-		 * Modify the software so that you read a query from a file, parse it,
-		 * and form the query tree automatically.
-		 */
 
-		// String queryNow = "12:#sum( freak)";
-		// String[] tmpa = queryNow.split(":");
-		// int queryIDNow = Integer.parseInt(tmpa[0]);
-		// queryNow = tmpa[1];
-		// BufferedWriter writer = new BufferedWriter(new FileWriter(new File(
-		// params.get("trecEvalOutputPath"))));
-		// // System.out.println("ID is:" + queryID + " query is:" + query);
-		// Qryop qTree;
-		// qTree = parseQuery(queryNow, model);
-		// QryResult Result = qTree.evaluate(model);
-		// writeResults(queryNow, qTree.evaluate(model), queryIDNow, writer,
-		// model);
 		BufferedWriter writer = new BufferedWriter(new FileWriter(new File(
 				params.get("trecEvalOutputPath"))));
 		// for each input query
 		String query = null;
 		while ((query = qryReader.nextQuery()) != null) {
+			System.out.println(query);
 			String[] tmp = query.split(":");
 			int queryID = Integer.parseInt(tmp[0]);
 			query = tmp[1];
@@ -242,14 +218,26 @@ public class QryEval {
 
 		qString = qString.trim();
 
-		if (qString.charAt(0) != '#') {
-			if (r instanceof RetrievalModelBM25)
-				qString = "#SUM(" + qString + ")";
-			else
-				qString = "#or(" + qString + ")";
+		if (r instanceof RetrievalModelUnrankedBoolean
+				|| r instanceof RetrievalModelRankedBoolean) {
+
+			qString = "#OR(" + qString + ")";
 		}
 
-		qString = "#score(" + qString + ")";
+		if (r instanceof RetrievalModelBM25) {
+			if (qString.length() <= 4
+					|| !qString.substring(0, 4).equalsIgnoreCase("#SUM")) {
+				qString = "#SUM(" + qString + ")";
+			}
+		}
+
+		if (r instanceof RetrievalModelIndri) {
+			// if (qString.length() <= 4
+			// || !qString.substring(0, 4).equalsIgnoreCase("#AND")) {
+			qString = "#AND(" + qString + ")";
+			// }
+		}
+		// qString = "#score(" + qString + ")";
 		// Tokenize the query.
 
 		StringTokenizer tokens = new StringTokenizer(qString, "\t\n\r ,()",
@@ -258,7 +246,8 @@ public class QryEval {
 		// Each pass of the loop processes one token. To improve
 		// efficiency and clarity, the query operator on the top of the
 		// stack is also stored in currentOp.
-		boolean lastIsSum = false;
+		boolean isTakingWeight = false;
+		Qryop lastOp = null;
 		while (tokens.hasMoreTokens()) {
 
 			token = tokens.nextToken();
@@ -282,12 +271,26 @@ public class QryEval {
 						Integer.parseInt(token.substring(6)));
 				// System.out.println(token.substring(6));
 				stack.push(currentOp);
-			} else if (token.equalsIgnoreCase("#score")) {
-				currentOp = new QryopSlScore();
+			} else if (token.length() > 8
+					&& token.substring(0, 7).equalsIgnoreCase("#window")) {
+				currentOp = new QryopIlWindows(Integer.parseInt(token
+						.substring(8)));
 				stack.push(currentOp);
 			}
 
-			else if (token.startsWith(")")) { // Finish current query
+			else if (token.equalsIgnoreCase("#score")) {
+				currentOp = new QryopSlScore();
+				stack.push(currentOp);
+			} else if (token.equalsIgnoreCase("#wand")) {
+				isTakingWeight = true;
+				currentOp = new QryopSlWAnd();
+				stack.push(currentOp);
+
+			} else if (token.equalsIgnoreCase("#wsum")) {
+				isTakingWeight = true;
+				currentOp = new QryopSlWsum();
+				stack.push(currentOp);
+			} else if (token.startsWith(")")) { // Finish current query
 												// operator.
 				// If the current query operator is not an argument to
 				// another query operator (i.e., the stack is empty when it
@@ -312,6 +315,23 @@ public class QryEval {
 
 				// some times after lexical processing I get nothing. In this
 				// case the term should be ignored
+				// double weight = 1.0;
+				// if (isDouble(token)) {
+				// weight = Double.parseDouble(token);
+				// token = tokens.nextToken();
+				// }
+				if (isTakingWeight) {
+					if (isDouble(token)) {
+						if (currentOp instanceof QryopSlWAnd) {
+							((QryopSlWAnd) currentOp).addWeight(Double
+									.parseDouble(token));
+						} else if (currentOp instanceof QryopSlWsum) {
+							((QryopSlWsum) currentOp).addWeight(Double
+									.parseDouble(token));
+						}
+						continue;
+					}
+				}
 				String tmp;
 				if (token.lastIndexOf(".") == -1)
 					tmp = token;
@@ -346,6 +366,7 @@ public class QryEval {
 					else
 						currentOp.add(new QryopIlTerm(tmp));
 				}
+
 			}
 		}
 
@@ -479,9 +500,18 @@ public class QryEval {
 					i++;
 
 				}
-			}
-			if (model instanceof RetrievalModelBM25) {
+			} else if (model instanceof RetrievalModelBM25) {
 
+				while (!stack.isEmpty()) {
+					writer.write(queryID + " " + "Q0" + " "
+							+ getExternalDocid(stack.peek().getDocid()) + " "
+							+ (i + 1) + " " + stack.peek().getScore() + " "
+							+ "run-1");
+					writer.write("\n");
+					stack.pop();
+					i++;
+				}
+			} else if (model instanceof RetrievalModelIndri) {
 				while (!stack.isEmpty()) {
 					writer.write(queryID + " " + "Q0" + " "
 							+ getExternalDocid(stack.peek().getDocid()) + " "
@@ -609,5 +639,14 @@ public class QryEval {
 			tokens.add(term);
 		}
 		return tokens.toArray(new String[tokens.size()]);
+	}
+
+	static boolean isDouble(String str) {
+		try {
+			Double.parseDouble(str);
+			return true;
+		} catch (NumberFormatException e) {
+			return false;
+		}
 	}
 }

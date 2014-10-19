@@ -1,17 +1,9 @@
-/**
- *  This class implements the SCORE operator for all retrieval models.
- *  The single argument to a score operator is a query operator that
- *  produces an inverted list.  The SCORE operator uses this
- *  information to produce a score list that contains document ids and
- *  scores.
- *
- *  Copyright (c) 2014, Carnegie Mellon University.  All Rights Reserved.
- */
-
 import java.io.*;
 import java.util.*;
 
 public class QryopSlScore extends QryopSl {
+	String field;
+	int ctf;
 
 	/**
 	 * Construct a new SCORE operator. The SCORE operator accepts just one
@@ -69,9 +61,48 @@ public class QryopSlScore extends QryopSl {
 		// return null;
 	}
 
-	private QryResult evaluateIndri(RetrievalModelIndri rIndri) {
-		// TODO Auto-generated method stub
-		return null;
+	private QryResult evaluateIndri(RetrievalModelIndri rIndri)
+			throws IOException {
+		QryResult result = args.get(0).evaluate(rIndri);
+
+		// hash docID with its score
+		InvList inv;
+		// double lambda = rIndri.getLambda();
+		// double mu = rIndri.getMu();
+		// have calculate N and avg_doclen before everything
+		inv = result.invertedList;
+		// double C = QryEval.READER.getSumTotalTermFreq(inv.field);
+		// double p = (double) inv.ctf / C;
+
+		for (int i = 0; i < result.invertedList.df; i++) {// for each term
+			// pointer
+			int docID = inv.getDocid(i);
+			// double tf = inv.getTf(i);
+			//
+			// double doclen = rIndri.getDls().getDocLength(inv.field, docID);
+			//
+			// double score = lambda * (tf + mu * p) / (doclen + mu)
+			// + (1 - lambda) * p;
+			// System.out.println(C + "\t" + p + "\t" + tf + "\t" + doclen +
+			// "\t"
+			// + score);
+			// System.out.println(score + " " + rIndri.calculateScore(inv, i));
+			// result.docScores.add(docID, rIndri.calculateScore(inv, i));
+
+			result.docScores.add(docID, rIndri.calculateScore(inv, i));
+
+		}
+
+		// total number of docs contains at least one term
+
+		result.docScores.ctf = result.invertedList.ctf;
+		this.field = result.invertedList.field;
+		this.ctf = result.invertedList.ctf;
+		freeDaaTPtrs();
+		if (result.invertedList.df > 0)
+			result.invertedList = new InvList();
+
+		return result;
 	}
 
 	/**
@@ -103,9 +134,6 @@ public class QryopSlScore extends QryopSl {
 			} else if (r instanceof RetrievalModelUnrankedBoolean)
 				result.docScores.add(result.invertedList.postings.get(i).docid,
 						(float) 1.0);
-			else if (r instanceof RetrievalModelBM25) {
-
-			}
 		}
 
 		// The SCORE operator should not return a populated inverted list.
@@ -120,36 +148,52 @@ public class QryopSlScore extends QryopSl {
 	public QryResult evaluateBM25(RetrievalModelBM25 r) throws IOException {
 		// Initialization
 
-		QryResult Qresult = args.get(0).evaluate(r);
-		QryResult result = new QryResult();
+		QryResult result = args.get(0).evaluate(r);
 
-		if (Qresult.invertedList == null
-				|| Qresult.invertedList.postings.size() < 1)
-			return Qresult;
-		// hash docID with its score
-		HashMap<Integer, Double> map = new HashMap<Integer, Double>();
 		InvList inv;
 
-		for (int i = 0; i < Qresult.invertedList.df; i++) {// for each term
-															// pointer
-			inv = Qresult.invertedList;
+		double k_1 = r.getK_1();
+		double b = r.getB();
 
-			for (int j = 0; j < inv.postings.size(); j++) {// for each
-															// pointer
-				int docID = inv.getDocid(j);
-				if (!map.containsKey(docID)) {
-					map.put(docID, 0.0);
-				}
-				map.put(docID, map.get(docID) + r.calculateScore(inv, j));
+		double doc_len = 0.0;
+
+		inv = result.invertedList;
+		int df_t = inv.df;
+		if (!r.docCount.containsKey(inv.field))
+			r.docCount.put(inv.field, QryEval.READER.getDocCount(inv.field));
+		int N = QryEval.READER.numDocs();
+
+		if (!r.aveLength.containsKey(inv.field))
+			r.aveLength.put(inv.field,
+					(double) QryEval.READER.getSumTotalTermFreq(inv.field)
+							/ (float) QryEval.READER.getDocCount(inv.field));
+		double avgLen = r.aveLength.get(inv.field);
+		double idf = Math.log((N - df_t + 0.5) / (df_t + 0.5));
+
+		for (int i = 0; i < result.invertedList.df; i++) {// for each term
+			int docID = inv.getDocid(i);
+			int tf_td = inv.getTf(i);
+			try {
+				doc_len = r.getDls().getDocLength(inv.field, docID);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
+
+			// double tf_weight = tf_td
+			// / (tf_t + k_1 * ((1 - b) + b * (doc_len / avgLen)));
+
+			double tf_weight = (tf_td / (tf_td + k_1
+					* ((1 - b) + b * (doc_len / avgLen))));
+
+			result.docScores.add(docID, idf * tf_weight);
 		}
+
 		// total number of docs contains at least one term
 
-		for (int key : map.keySet()) {
-			result.docScores.add(key, map.get(key));
-		}
 		freeDaaTPtrs();
-
+		if (result.invertedList.df > 0)
+			result.invertedList = new InvList();
 		return result;
 	}
 
@@ -187,4 +231,5 @@ public class QryopSlScore extends QryopSl {
 
 		return ("#SCORE( " + result + ")");
 	}
+
 }

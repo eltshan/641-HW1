@@ -1,9 +1,9 @@
 queryFilePath=C:\Users\shen\git\641-HW1\641HW1\files\testQry
 indexPath=D:\download\index-1.0\index
-trecEvalOutputPath=tmpResult.txt
-retrievalAlgorithm=rankedboolean
+trecEvalOutputPath=xxxsssaaa.txt
+retrievalAlgorithm=Indri
 BM25:k_1= 1.2
-BM25:b= 0.75
+BM25:b= 0.8
 BM25:k_3= 0
-Indri:mu= Acceptable values are integers >= 0.
-Indri:lambda= Acceptable values are between 0.0 and 1.0.
+Indri:mu= 5000
+Indri:lambda= 0.4

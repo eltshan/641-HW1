@@ -29,6 +29,7 @@ public class ScoreList {
 		}
 	}
 
+	int ctf;
 	List<ScoreListEntry> scores = new ArrayList<ScoreListEntry>();
 
 	/**

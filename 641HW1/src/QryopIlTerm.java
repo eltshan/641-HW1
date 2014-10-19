@@ -14,6 +14,7 @@ public class QryopIlTerm extends QryopIl {
 
 	private String term;
 	private String field;
+	public double weight;
 
 	/**
 	 * Constructor. The term is assumed to match the body field.
@@ -39,6 +40,18 @@ public class QryopIlTerm extends QryopIl {
 	public QryopIlTerm(String t, String f) {
 		this.term = t;
 		this.field = f;
+	}
+
+	public QryopIlTerm(String t, String f, double w) {
+		this(t, f);
+		this.weight = w;
+
+	}
+
+	public QryopIlTerm(String t, double w) {
+		this(t);
+		this.weight = w;
+
 	}
 
 	/*
