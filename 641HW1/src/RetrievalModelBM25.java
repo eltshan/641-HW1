@@ -38,12 +38,12 @@ public class RetrievalModelBM25 extends RetrievalModel {
 		double tf_weight = tf_td
 				/ (tf_t + k_1 * ((1 - b) + b * (doc_len / avgLen)));
 
-		return idf * tf_weight; // * user_weight;
+		return idf * tf_weight;
+		// * user_weight;
 	}
 
 	@Override
 	public boolean setParameter(String parameterName, double value) {
-		// TODO Auto-generated method stub
 		if (parameterName.equals("k_1"))
 			setK_1(value);
 		else if (parameterName.equals("b"))

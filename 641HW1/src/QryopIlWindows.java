@@ -118,14 +118,13 @@ public class QryopIlWindows extends QryopIl {
 		ArrayList<Integer> positions = new ArrayList<Integer>();
 
 		Comparator<myClass> scoreComparator = new Comparator<myClass>() {
-
 			@Override
 			public int compare(myClass o1, myClass o2) {
 
 				if (o1.position < o2.position)
-					return 1;
-				if (o1.position > o2.position)
 					return -1;
+				if (o1.position > o2.position)
+					return 1;
 				else
 					return 0;
 			};
@@ -152,8 +151,22 @@ public class QryopIlWindows extends QryopIl {
 		}
 		boolean flag = true;
 		// if flag = false, which means there is no window left
+		// System.out.println("hello");
 		while (flag) {
+
 			if (currentMax - minHeap.peek().position <= n) {
+				// System.out.println("done!");
+				// System.out.print("max is: " + currentMax + " ");
+				// System.out.print("min is: " + minHeap.peek().position + " ");
+				//
+				// for (int ii = 0; ii < curPos.length; ii++) {
+				//
+				// System.out.print(this.daatPtrs.get(ii).invList.postings
+				// .get(docPos[ii]).positions.get(curPos[ii] - 1)
+				// + " ");
+				// }
+				// System.out.println();
+
 				positions.add(minHeap.peek().position);
 				// why did I clear the heap here?
 				minHeap.clear();
@@ -161,15 +174,28 @@ public class QryopIlWindows extends QryopIl {
 
 					if (undateHeap(minHeap, docPos, curPos, i) == false) {
 						flag = false;
+						// System.out.println("fail!");
 						break;
 					}
+					if (this.daatPtrs.get(i).invList.postings.get(docPos[i]).positions
+							.get(curPos[i] - 1) > currentMax)
+						currentMax = this.daatPtrs.get(i).invList.postings
+								.get(docPos[i]).positions.get(curPos[i] - 1);
 				}
 
 			} else {
+				// System.out.println("fail!");
 				myClass tmp = minHeap.remove();
 				if (undateHeap(minHeap, docPos, curPos, tmp.pointID) == false)
 					flag = false;
+				if (this.daatPtrs.get(tmp.pointID).invList.postings
+						.get(docPos[tmp.pointID]).positions
+						.get(curPos[tmp.pointID] - 1) > currentMax)
+					currentMax = this.daatPtrs.get(tmp.pointID).invList.postings
+							.get(docPos[tmp.pointID]).positions
+							.get(curPos[tmp.pointID] - 1);
 			}
+
 		}
 
 		if (positions.size() > 0) {
@@ -182,7 +208,7 @@ public class QryopIlWindows extends QryopIl {
 
 	private boolean undateHeap(PriorityQueue<myClass> minHeap, int[] docPos,
 			int[] curPos, int i) {
-		
+
 		DaaTPtr ptri = this.daatPtrs.get(i);
 		if (ptri.invList.postings.get(docPos[i]).positions.size() <= curPos[i])
 			return false;
