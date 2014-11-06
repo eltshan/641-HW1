@@ -64,24 +64,34 @@ public class QryopSlWsum extends QryopSl {
 		allocDaaTPtrs(r);
 		// System.out.println("argsize: " + args.size());
 		QryResult result = new QryResult();
+		int totalSize = this.args.size();
 
-		int orgSize = this.daatPtrs.size();
-		while (this.daatPtrs.size() > 0) {
+		while (totalSize > 0) {
 
 			int nextDocid = getSmallestCurrentDocid();
-
+			if (nextDocid < 0)
+				break;
 			// Create a new posting that is the union of the posting lists
-			// that match the nextDocid.
-			double score = 1;
+			// that match the nextDocid.F
+			double score = 0;
 			int docID = nextDocid;
 			for (int i = 0; i < this.daatPtrs.size(); i++) {
+				double tmpScore = 0;
 				DaaTPtr ptri = this.daatPtrs.get(i);
+				if (ptri.nextDoc >= ptri.scoreList.scores.size()) {
+					double currentScore = ((QryopSl) this.args.get(i))
+							.getDefaultScore(r, nextDocid);
 
+					score += currentScore * weights.get(i)
+							/ this.totalWeight;
+					continue;
+				}
 				if (ptri.scoreList.getDocid(ptri.nextDoc) == nextDocid) {
 
-					score += ptri.scoreList.getDocidScore(ptri.nextDoc);
+					tmpScore += ptri.scoreList.getDocidScore(ptri.nextDoc);
 					ptri.nextDoc++;
-
+					if (ptri.nextDoc >= ptri.scoreList.scores.size())
+						totalSize--;
 				} else {
 
 					ArrayList<QryopSlScore> tmps = new ArrayList<QryopSlScore>();
@@ -93,25 +103,28 @@ public class QryopSlWsum extends QryopSl {
 								docID);
 					}
 
-					score += defaultScore;
+					tmpScore += defaultScore;
 				}
+				// System.out.println("i =: " + i + " "
+				// + (orgSize - this.daatPtrs.size()));
+				// System.out.println("weight is:" + this.weights.get(i)
+				// / this.totalWeight);
+				tmpScore = tmpScore * this.weights.get(i) / this.totalWeight;
+				score += tmpScore;
 			}
+			// // System.out.println(docID + ":" + score);
+			// if (docID == 552418)
+			// docID = 552418;
 
-			// If a DaatPtr has reached the end of its list, remove it.
-			// The loop is backwards so that removing an arg does not
-			// interfere with iteration.
-			result.docScores.add(docID,
-					score * this.weights.get(orgSize - this.daatPtrs.size())
-							/ this.totalWeight);
-			// System.out.println("daatSize " + daatPtrs.size());
+			result.docScores.add(docID, score);
 
-			for (int i = this.daatPtrs.size() - 1; i >= 0; i--) {
-				DaaTPtr ptri = this.daatPtrs.get(i);
-
-				if (ptri.nextDoc >= ptri.scoreList.scores.size()) {
-					this.daatPtrs.remove(i);
-				}
-			}
+			// for (int i = this.daatPtrs.size() - 1; i >= 0; i--) {
+			// DaaTPtr ptri = this.daatPtrs.get(i);
+			//
+			// if (ptri.nextDoc >= ptri.scoreList.scores.size()) {
+			// this.daatPtrs.remove(i);
+			// }
+			// }
 		}
 
 		freeDaaTPtrs();
@@ -136,6 +149,8 @@ public class QryopSlWsum extends QryopSl {
 
 		for (int i = 0; i < this.daatPtrs.size(); i++) {
 			DaaTPtr ptri = this.daatPtrs.get(i);
+			if (ptri.nextDoc >= ptri.scoreList.scores.size())
+				return -1;
 			if (nextDocid > ptri.scoreList.getDocid(ptri.nextDoc))
 				nextDocid = ptri.scoreList.getDocid(ptri.nextDoc);
 		}

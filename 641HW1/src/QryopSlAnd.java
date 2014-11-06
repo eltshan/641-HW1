@@ -7,6 +7,7 @@
 import java.io.*;
 import java.util.*;
 
+
 public class QryopSlAnd extends QryopSl {
 
 	/**
@@ -64,7 +65,8 @@ public class QryopSlAnd extends QryopSl {
 		while (this.daatPtrs.size() > 0) {
 
 			int nextDocid = getSmallestCurrentDocid();
-
+			if(nextDocid < 0)
+				break;
 			// Create a new posting that is the union of the posting lists
 			// that match the nextDocid.
 			double score = 1;
@@ -129,6 +131,8 @@ public class QryopSlAnd extends QryopSl {
 
 		for (int i = 0; i < this.daatPtrs.size(); i++) {
 			DaaTPtr ptri = this.daatPtrs.get(i);
+			if(ptri.nextDoc >= ptri.scoreList.scores.size())
+				return -1;
 			if (nextDocid > ptri.scoreList.getDocid(ptri.nextDoc))
 				nextDocid = ptri.scoreList.getDocid(ptri.nextDoc);
 		}

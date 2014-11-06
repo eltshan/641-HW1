@@ -247,7 +247,6 @@ public class QryEval {
 		// efficiency and clarity, the query operator on the top of the
 		// stack is also stored in currentOp.
 		boolean isTakingWeight = false;
-		Qryop lastOp = null;
 		while (tokens.hasMoreTokens()) {
 
 			token = tokens.nextToken();
@@ -321,13 +320,18 @@ public class QryEval {
 				// token = tokens.nextToken();
 				// }
 				if (isTakingWeight) {
-					if (isDouble(token)) {
+					if (isDouble(token) && Double.parseDouble(token) < 1.0) {
 						if (currentOp instanceof QryopSlWAnd) {
 							((QryopSlWAnd) currentOp).addWeight(Double
 									.parseDouble(token));
 						} else if (currentOp instanceof QryopSlWsum) {
 							((QryopSlWsum) currentOp).addWeight(Double
 									.parseDouble(token));
+							// if (Double.parseDouble(token) == 0.4)
+							// ((QryopSlWsum) currentOp).addWeight(0.2);
+							// if(Double.parseDouble(token) == 0.6)
+							// ((QryopSlWsum) currentOp).addWeight(0.8);
+
 						}
 						continue;
 					}
