@@ -155,17 +155,7 @@ public class QryopIlWindows extends QryopIl {
 		while (flag) {
 
 			if (currentMax - minHeap.peek().position <= n) {
-				// System.out.println("done!");
-				// System.out.print("max is: " + currentMax + " ");
-				// System.out.print("min is: " + minHeap.peek().position + " ");
-				//
-				// for (int ii = 0; ii < curPos.length; ii++) {
-				//
-				// System.out.print(this.daatPtrs.get(ii).invList.postings
-				// .get(docPos[ii]).positions.get(curPos[ii] - 1)
-				// + " ");
-				// }
-				// System.out.println();
+
 
 				positions.add(minHeap.peek().position);
 				// why did I clear the heap here?

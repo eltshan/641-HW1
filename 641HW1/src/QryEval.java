@@ -53,6 +53,7 @@ public class QryEval {
 	 *            The only argument is the path to the parameter file.
 	 * @throws Exception
 	 */
+	@SuppressWarnings("resource")
 	public static void main(String[] args) throws Exception {
 
 		// must supply parameter file
@@ -121,18 +122,87 @@ public class QryEval {
 		BufferedWriter writer = new BufferedWriter(new FileWriter(new File(
 				params.get("trecEvalOutputPath"))));
 		// for each input query
-		String query = null;
-		while ((query = qryReader.nextQuery()) != null) {
-			System.out.println(query);
-			String[] tmp = query.split(":");
-			int queryID = Integer.parseInt(tmp[0]);
-			query = tmp[1];
 
-			// System.out.println("ID is:" + queryID + " query is:" + query);
-			Qryop qTree;
-			qTree = parseQuery(query, model);
-			// QryResult Result = qTree.evaluate(model);
-			writeResults(query, qTree.evaluate(model), queryID, writer, model);
+		if (params.get("fb").equals("true")) {
+			StringBuffer expendedQry = new StringBuffer();
+			int fbDocs = Integer.parseInt(params.get("fbDocs"));
+			int fbTerms = Integer.parseInt(params.get("fbTerms"));
+			int fbMu = Integer.parseInt(params.get("fbMu"));
+			double fbOrigWeight = Double
+					.parseDouble(params.get("fbOrigWeight"));
+			String fbInitialRankingFileName = params
+					.get("fbInitialRankingFile");
+			String fbExpansionQueryFileName = params
+					.get("fbExpansionQueryFile");
+			QueryExpander qexp = new QueryExpander(fbDocs, fbTerms, fbMu);
+			qexp.setDls(new DocLengthStore(READER));
+			String query = null;
+			BufferedWriter expQryWriter = null;
+
+			if (fbInitialRankingFileName == null) {
+				BufferedWriter tmpWritter = new BufferedWriter(new FileWriter(
+						new File(fbExpansionQueryFileName)));
+
+				query = null;
+				while ((query = qryReader.nextQuery()) != null) {
+					System.out.println(query);
+					String[] tmp2 = query.split(":");
+					int queryID = Integer.parseInt(tmp2[0]);
+					query = tmp2[1];
+
+					Qryop qTree;
+					qTree = parseQuery(query, model);
+					writeResults(query, qTree.evaluate(model), queryID,
+							tmpWritter, model);
+				}
+				tmpWritter.close();
+
+				fbInitialRankingFileName = fbExpansionQueryFileName;
+			}
+			qryReader = new QryReader(params.get("queryFilePath"));
+
+			while ((query = qryReader.nextQuery()) != null) {
+				System.out.println(query);
+				String[] tmp = query.split(":");
+				int queryID = Integer.parseInt(tmp[0]);
+				HashMap<Integer, Double> tmpMap2 = null;
+
+				HashMap<String, Double> tmpMap = qexp.readTopKfbDocs(
+						fbInitialRankingFileName, queryID);
+				tmpMap2 = new HashMap<Integer, Double>();
+				for (String x : tmpMap.keySet()) {
+					tmpMap2.put(getInternalDocid(x), tmpMap.get(x));
+				}
+				String expandedQry = qexp.expandQuery(query, tmpMap2);
+				expendedQry.append(queryID + ":" + expandedQry + "\n");
+				query = tmp[1];
+				String finalQry = "#WAND( " + fbOrigWeight + " #AND( " + tmp[1]
+						+ " ) " + (1 - fbOrigWeight) + " " + expandedQry + " )";
+				System.out.println(finalQry);
+				Qryop qTree;
+				qTree = parseQuery(finalQry, model);
+				// QryResult Result = qTree.evaluate(model);
+				writeResults(finalQry, qTree.evaluate(model), queryID, writer,
+						model);
+			}
+			expQryWriter = new BufferedWriter(new FileWriter(new File(
+					fbExpansionQueryFileName)));
+			expQryWriter.write(expendedQry.toString());
+			expQryWriter.close();
+
+		} else {
+			String query = null;
+			while ((query = qryReader.nextQuery()) != null) {
+				System.out.println(query);
+				String[] tmp = query.split(":");
+				int queryID = Integer.parseInt(tmp[0]);
+				query = tmp[1];
+
+				Qryop qTree;
+				qTree = parseQuery(query, model);
+				writeResults(query, qTree.evaluate(model), queryID, writer,
+						model);
+			}
 		}
 		writer.close();
 
@@ -320,7 +390,7 @@ public class QryEval {
 				// token = tokens.nextToken();
 				// }
 				if (isTakingWeight) {
-					if (isDouble(token) && Double.parseDouble(token) < 1.0) {
+					if (isDouble(token) && !isInteger(token)) {
 						if (currentOp instanceof QryopSlWAnd) {
 							((QryopSlWAnd) currentOp).addWeight(Double
 									.parseDouble(token));
@@ -648,6 +718,15 @@ public class QryEval {
 	static boolean isDouble(String str) {
 		try {
 			Double.parseDouble(str);
+			return true;
+		} catch (NumberFormatException e) {
+			return false;
+		}
+	}
+
+	static boolean isInteger(String str) {
+		try {
+			Integer.parseInt(str);
 			return true;
 		} catch (NumberFormatException e) {
 			return false;

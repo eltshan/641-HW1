@@ -69,8 +69,8 @@ public class QryopSlWAnd extends QryopSl {
 		while (totalSize > 0) {
 
 			int nextDocid = getSmallestCurrentDocid();
-			if(nextDocid < 0)
-					break;
+			if (nextDocid < 0)
+				break;
 			// Create a new posting that is the union of the posting lists
 			// that match the nextDocid.F
 			double score = 1;
@@ -106,27 +106,14 @@ public class QryopSlWAnd extends QryopSl {
 
 					tmpScore *= defaultScore;
 				}
-				// System.out.println("i =: " + i + " "
-				// + (orgSize - this.daatPtrs.size()));
-				// System.out.println("weight is:" + this.weights.get(i)
-				// / this.totalWeight);
+
 				tmpScore = Math.pow(tmpScore, this.weights.get(i)
 						/ this.totalWeight);
 				score *= tmpScore;
 			}
-			// // System.out.println(docID + ":" + score);
-			// if (docID == 552418)
-			// docID = 552418;
 
 			result.docScores.add(docID, score);
 
-			// for (int i = this.daatPtrs.size() - 1; i >= 0; i--) {
-			// DaaTPtr ptri = this.daatPtrs.get(i);
-			//
-			// if (ptri.nextDoc >= ptri.scoreList.scores.size()) {
-			// this.daatPtrs.remove(i);
-			// }
-			// }
 		}
 
 		freeDaaTPtrs();
@@ -151,7 +138,7 @@ public class QryopSlWAnd extends QryopSl {
 
 		for (int i = 0; i < this.daatPtrs.size(); i++) {
 			DaaTPtr ptri = this.daatPtrs.get(i);
-			if(ptri.nextDoc >= ptri.scoreList.scores.size())
+			if (ptri.nextDoc >= ptri.scoreList.scores.size())
 				return -1;
 			if (nextDocid > ptri.scoreList.getDocid(ptri.nextDoc))
 				nextDocid = ptri.scoreList.getDocid(ptri.nextDoc);

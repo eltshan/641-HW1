@@ -82,8 +82,7 @@ public class QryopSlWsum extends QryopSl {
 					double currentScore = ((QryopSl) this.args.get(i))
 							.getDefaultScore(r, nextDocid);
 
-					score += currentScore * weights.get(i)
-							/ this.totalWeight;
+					score += currentScore * weights.get(i) / this.totalWeight;
 					continue;
 				}
 				if (ptri.scoreList.getDocid(ptri.nextDoc) == nextDocid) {
@@ -105,26 +104,13 @@ public class QryopSlWsum extends QryopSl {
 
 					tmpScore += defaultScore;
 				}
-				// System.out.println("i =: " + i + " "
-				// + (orgSize - this.daatPtrs.size()));
-				// System.out.println("weight is:" + this.weights.get(i)
-				// / this.totalWeight);
+
 				tmpScore = tmpScore * this.weights.get(i) / this.totalWeight;
 				score += tmpScore;
 			}
-			// // System.out.println(docID + ":" + score);
-			// if (docID == 552418)
-			// docID = 552418;
 
 			result.docScores.add(docID, score);
 
-			// for (int i = this.daatPtrs.size() - 1; i >= 0; i--) {
-			// DaaTPtr ptri = this.daatPtrs.get(i);
-			//
-			// if (ptri.nextDoc >= ptri.scoreList.scores.size()) {
-			// this.daatPtrs.remove(i);
-			// }
-			// }
 		}
 
 		freeDaaTPtrs();
