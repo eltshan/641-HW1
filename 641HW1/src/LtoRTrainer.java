@@ -1,10 +1,13 @@
 import java.io.IOException;
 import java.util.HashMap;
 
+import javax.swing.text.html.parser.DTD;
+
 import org.apache.lucene.document.Document;
 import org.apache.lucene.queryparser.flexible.core.util.StringUtils;
 
 public class LtoRTrainer {
+
 	static public void train(String query, int qid) {
 		int k1 = 0;
 		int k3 = 0;
@@ -68,29 +71,68 @@ public class LtoRTrainer {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}// get doc ID
-				for (int i = 0; i < tv.stems.length; i++) {
-					try {
-						int df_t = tv.stemDf(i);
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
 
-				}
+				bm25Body = calculateBM25Score(tv, "body", docId, k1, k3, b);
+				
+				//to be done
 			}
 
 		}
 
 	}
 
-	static public double calculateBM25Score(TermVector tv) {
+	static public double calculateBM25Score(TermVector tv, String field,
+			int docId, int k1, int k3, int b) {
 		int df_t = 0;
 		int tf_t = 0;
 		int doclen = 0;
-		int avg_doclen = 0;
+		double avgLength = 0;
 		int qtf_t = 0;
 		int N = 0;
+		double bm25Score = 0.0;
+		for (int i = 0; i < tv.stems.length; i++) {
+			try {
+				df_t = tv.stemDf(i);
+				tf_t = tv.stemFreq(i);
+				doclen = (int) QryEval.s.getDocLength(field, docId);
+				N = QryEval.READER.getDocCount(field);
+				avgLength = (double) (QryEval.READER.getSumTotalTermFreq(field) / N);
+				bm25Score += Math.log((N - df_t + 0.5) / (df_t + 0.5)) * tf_t
+						/ (tf_t + k1 * ((1 - b) + b * (doclen / avgLength)))
+						* (k3 + 1) / k3;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
-		return 0;
+		}
+		return bm25Score;
+	}
+
+	static public double calcualteIndriScore(
+			HashMap<String, Integer> stringTerms, TermVector tv, String field,
+			int docid, int lambda, int mu) throws IOException {
+		double indriScore = 1.0;
+
+		double lengthC = QryEval.READER.getSumTotalTermFreq(field);// QryEval.READER.getSumTotalTermFreq(invl.field);
+		double tf_qd = 0;// invl.getTf(i);
+		double P_qc = 0;// (double) (invl.ctf) / lengthC;
+
+		double docLength = QryEval.s.getDocLength(field, docid);
+
+		for (int i = 0; i < tv.stems.length; i++) {
+			// if the term appears in the query
+			tf_qd = 0;
+			if (stringTerms.containsKey(tv.stemAt(i))) {
+				tf_qd = tv.stemFreq(i);
+			}
+			P_qc = (double) tv.totalStemFreq(i) / lengthC;
+
+			double first = lambda * (tf_qd + mu * P_qc) / (docLength + mu);
+			double second = (1 - lambda) * P_qc;
+			indriScore *= (first + second);
+		}
+
+		return indriScore;
 	}
 }

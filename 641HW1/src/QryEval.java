@@ -36,7 +36,7 @@ public class QryEval {
 	// dummy output when no result is retrived
 	private static String dummyOutput = "10 Q0 dummy 1 0 run-1";
 	public static IndexReader READER;
-
+	public static DocLengthStore s = null;
 	// Create and configure an English analyzer that will be used for
 	// query parsing.
 
@@ -84,6 +84,8 @@ public class QryEval {
 		// open the index
 		READER = DirectoryReader.open(FSDirectory.open(new File(params
 				.get("indexPath"))));
+		s = new DocLengthStore(READER);
+		;
 
 		if (READER == null) {
 			System.err.println(usage);
@@ -91,7 +93,6 @@ public class QryEval {
 		}
 
 		QryReader qryReader = new QryReader(params.get("queryFilePath"));
-		DocLengthStore s = new DocLengthStore(READER);
 
 		// RetrievalModel model = new RetrievalModelUnrankedBoolean();
 		RetrievalModel model = null;
