@@ -1,4 +1,8 @@
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import javax.swing.text.html.parser.DTD;
@@ -8,12 +12,24 @@ import org.apache.lucene.queryparser.flexible.core.util.StringUtils;
 
 public class LtoRTrainer {
 
-	static public void train(String query, int qid) {
-		int k1 = 0;
-		int k3 = 0;
-		int b = 0;
-		while (true) {
+	double k1;
+	double k3;
+	double b;
+	double mu;
+	double lambda;
+	String queryFileName;
+	String docFileName;
+	String pageRankFileName;
+
+	public void train(String query, int qid) throws Exception {
+		BufferedReader br = new BufferedReader(new FileReader(new File(
+				queryFileName)));
+		String qryLine = null;
+		String[] parsedQryLine = null;
+		while ((qryLine = br.readLine()) != null) {// for each query
 			String tmps[] = null;
+			parsedQryLine = qryLine.split(":");
+			qid = Integer.parseInt(parsedQryLine[0]);
 			HashMap<String, Integer> map = new HashMap<String, Integer>();
 			try {
 				tmps = QryEval.tokenizeQuery(query);
@@ -30,6 +46,7 @@ public class LtoRTrainer {
 				}
 			}
 			TermVector tv = null;
+			ArrayList<LtoRFeature> featureList = new ArrayList<LtoRFeature>();
 			while (true) {// fetch each document
 				String fileName = null;
 				int score = 0;
@@ -59,30 +76,75 @@ public class LtoRTrainer {
 				featureVector.addFeature(wikiScore);
 				// addd page rank score
 
-				// add bm25:
+				// add body field related score:
 
 				// bm25 score with body
-				double bm25Body = 0;
 
-				try {
-					docId = QryEval.getInternalDocid(fileName);
-					tv = new TermVector(docId, "body");
-				} catch (Exception e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}// get doc ID
+				docId = QryEval.getInternalDocid(fileName);
+				tv = new TermVector(docId, "body");
 
-				bm25Body = calculateBM25Score(tv, "body", docId, k1, k3, b);
-				
-				//to be done
+				featureVector.addFeature(calculateBM25Score(map, tv, "body",
+						docId));
+				featureVector.addFeature(calcualteIndriScore(map, tv, "body",
+						docId));
+				featureVector.addFeature(calculateOverlapScore(map, tv));
+
+				// title
+
+				docId = QryEval.getInternalDocid(fileName);
+				tv = new TermVector(docId, "title");
+
+				featureVector.addFeature(calculateBM25Score(map, tv, "title",
+						docId));
+				featureVector.addFeature(calcualteIndriScore(map, tv, "title",
+						docId));
+				featureVector.addFeature(calculateOverlapScore(map, tv));
+
+				// url
+
+				docId = QryEval.getInternalDocid(fileName);
+				tv = new TermVector(docId, "url");
+
+				featureVector.addFeature(calculateBM25Score(map, tv, "url",
+						docId));
+				featureVector.addFeature(calcualteIndriScore(map, tv, "url",
+						docId));
+				featureVector.addFeature(calculateOverlapScore(map, tv));
+
+				//
+				docId = QryEval.getInternalDocid(fileName);
+				tv = new TermVector(docId, "inlink");
+
+				featureVector.addFeature(calculateBM25Score(map, tv, "inlink",
+						docId));
+				featureVector.addFeature(calcualteIndriScore(map, tv, "inlink",
+						docId));
+				featureVector.addFeature(calculateOverlapScore(map, tv));
+
+				// my own features
+				featureVector.addFeature(0);
+				featureVector.addFeature(1);
+				featureList.add(featureVector);
 			}
 
 		}
 
 	}
 
-	static public double calculateBM25Score(TermVector tv, String field,
-			int docId, int k1, int k3, int b) {
+	public double calculateOverlapScore(HashMap<String, Integer> map,
+			TermVector tv) {
+		double overlapScore = 0;
+		for (int i = 0; i < tv.stems.length; i++) {
+			if (map.containsKey(tv.stemAt(i))) {
+				overlapScore += 1;
+			}
+		}
+		return overlapScore / map.size();
+
+	}
+
+	public double calculateBM25Score(HashMap<String, Integer> stringTerms,
+			TermVector tv, String field, int docId) throws IOException {
 		int df_t = 0;
 		int tf_t = 0;
 		int doclen = 0;
@@ -91,27 +153,25 @@ public class LtoRTrainer {
 		int N = 0;
 		double bm25Score = 0.0;
 		for (int i = 0; i < tv.stems.length; i++) {
-			try {
-				df_t = tv.stemDf(i);
-				tf_t = tv.stemFreq(i);
-				doclen = (int) QryEval.s.getDocLength(field, docId);
-				N = QryEval.READER.getDocCount(field);
-				avgLength = (double) (QryEval.READER.getSumTotalTermFreq(field) / N);
-				bm25Score += Math.log((N - df_t + 0.5) / (df_t + 0.5)) * tf_t
-						/ (tf_t + k1 * ((1 - b) + b * (doclen / avgLength)))
-						* (k3 + 1) / k3;
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			if (!stringTerms.containsKey(tv.stemAt(i))) {
+				continue;
 			}
+
+			df_t = tv.stemDf(i);
+			tf_t = tv.stemFreq(i);
+			doclen = (int) QryEval.s.getDocLength(field, docId);
+			N = QryEval.READER.getDocCount(field);
+			avgLength = (double) (QryEval.READER.getSumTotalTermFreq(field) / N);
+			bm25Score += Math.log((N - df_t + 0.5) / (df_t + 0.5)) * tf_t
+					/ (tf_t + k1 * ((1 - b) + b * (doclen / avgLength)))
+					* (k3 + 1) / k3;
 
 		}
 		return bm25Score;
 	}
 
-	static public double calcualteIndriScore(
-			HashMap<String, Integer> stringTerms, TermVector tv, String field,
-			int docid, int lambda, int mu) throws IOException {
+	public double calcualteIndriScore(HashMap<String, Integer> stringTerms,
+			TermVector tv, String field, int docid) throws IOException {
 		double indriScore = 1.0;
 
 		double lengthC = QryEval.READER.getSumTotalTermFreq(field);// QryEval.READER.getSumTotalTermFreq(invl.field);
@@ -135,4 +195,5 @@ public class LtoRTrainer {
 
 		return indriScore;
 	}
+
 }

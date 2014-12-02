@@ -118,6 +118,17 @@ public class QryEval {
 			modelAndri.setMu(Double.parseDouble(params.get("Indri:mu")));
 			model = modelAndri;
 			// modelAndri.setParameter("mu", params.get(arg0))
+		} else if (params.get("retrievalAlgorithm").equalsIgnoreCase("letor")) {
+			LtoRTrainer trainer = new LtoRTrainer();
+			trainer.k1 = Double.parseDouble(params.get("BM25:k_1"));
+			trainer.k3 = Double.parseDouble(params.get("BM25:k_3"));
+			trainer.b = Double.parseDouble(params.get("BM25:b"));
+			trainer.mu = Double.parseDouble(params.get("Indri:mu"));
+			trainer.lambda = Double.parseDouble(params
+					.get("Indri:Indri:lambda"));
+			trainer.queryFileName = params.get("BM25:k_1");
+			trainer.docFileName = params.get("BM25:k_1");
+			trainer.pageRankFileName = params.get("BM25:k_1");
 		}
 
 		BufferedWriter writer = new BufferedWriter(new FileWriter(new File(
