@@ -37,6 +37,7 @@ public class RetrievalModelBM25 extends RetrievalModel {
 		double idf = Math.log((N - df_t + 0.5) / (df_t + 0.5));
 		double tf_weight = tf_td
 				/ (tf_t + k_1 * ((1 - b) + b * (doc_len / avgLen)));
+		System.out.println(idf * tf_weight);
 
 		return idf * tf_weight;
 		// * user_weight;

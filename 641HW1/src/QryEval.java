@@ -118,6 +118,15 @@ public class QryEval {
 			modelAndri.setMu(Double.parseDouble(params.get("Indri:mu")));
 			model = modelAndri;
 		} else if (params.get("retrievalAlgorithm").equalsIgnoreCase("letor")) {
+
+			HashSet<Integer> disabledFeatures = new HashSet<Integer>();
+			String[] disfeatures = params.get("letor:featureDisable")
+					.split(",");
+			for (String tmp : disfeatures) {
+				if (isInteger(tmp)) {
+					disabledFeatures.add(Integer.parseInt(tmp));
+				}
+			}
 			LtoRTrainer trainer = new LtoRTrainer();
 			trainer.k1 = Double.parseDouble(params.get("BM25:k_1"));
 			trainer.k3 = Double.parseDouble(params.get("BM25:k_3"));
@@ -129,8 +138,60 @@ public class QryEval {
 			trainer.pageRankFileName = params.get("letor:pageRankFile");
 			trainer.featureVectorFileName = params
 					.get("letor:trainingFeatureVectorsFile");
-			trainer.train(null, 0);
+
+			// load page rank score
+			HashMap<String, Double> pageRankScore = new HashMap<String, Double>();
+			BufferedReader br = new BufferedReader(new FileReader(new File(
+					trainer.pageRankFileName)));
+			String readline = null;
+			String[] tmpSplited = null;
+			while ((readline = br.readLine()) != null) {
+				tmpSplited = readline.split("\t");
+				pageRankScore.put(tmpSplited[0],
+						Double.parseDouble(tmpSplited[1]));
+			}
+			System.out.println("loading page rank score done");
+			trainer.train(disabledFeatures, pageRankScore);
+
+			System.out.println("feature extracting Done");
+
+			Process p;
+			String learnDir = params.get("letor:svmRankLearnPath");
+			String classifyDir = params.get("letor:svmRankClassifyPath");
+			String featureOutPutFile = params
+					.get("letor:trainingFeatureVectorsFile");
+			String modelOutPutFile = params.get("letor:svmRankModelFile");
+			// String command = learnDir + " -c 3 " + dir +
+			// "/example3/train.dat "
+			// + dir + "/example3/predictions12345";
+			String svmRankParamC = params.get("letor:svmRankParamC");
+			p = Runtime.getRuntime().exec(
+					new String[] { learnDir, "-c",
+							String.valueOf(svmRankParamC), featureOutPutFile,
+							modelOutPutFile });
+			// consume stdout and print it out for debugging purposes
+			BufferedReader stdoutReader = new BufferedReader(
+					new InputStreamReader(p.getInputStream()));
+			String myline;
+			while ((myline = stdoutReader.readLine()) != null) {
+				System.out.println(myline);
+			}
+			// consume stderr and print it for debugging purposes
+			BufferedReader stderrReader = new BufferedReader(
+					new InputStreamReader(p.getErrorStream()));
+			while ((myline = stderrReader.readLine()) != null) {
+				System.out.println(myline);
+			}
+
+			// get the return value from the executable. 0 means success,
+			// non-zero
+			// indicates a problem
+			int retValue = p.waitFor();
+			if (retValue != 0) {
+				throw new Exception("SVM Rank crashed.");
+			}
 			System.out.println("training Done");
+
 		}
 
 		BufferedWriter writer = new BufferedWriter(new FileWriter(new File(

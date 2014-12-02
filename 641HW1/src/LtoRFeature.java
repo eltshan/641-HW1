@@ -15,6 +15,30 @@ public class LtoRFeature {
 		this.features = new ArrayList<Double>();
 	}
 
+	// public void normalize() {
+	// double maxValue = Integer.MIN_VALUE;
+	// double minValue = Integer.MIN_VALUE;
+	// for (int i = 0; i < features.size(); i++) {
+	// if (features.get(i) == 0) {
+	// continue;
+	// }
+	// if (features.get(i) > maxValue) {
+	// maxValue = features.get(i);
+	// }
+	// if (features.get(i) < minValue) {
+	// minValue = features.get(i);
+	// }
+	// }
+	// }
+
+	public double getFeature(int i) {
+		return features.get(i);
+	}
+
+	public void setFeature(int i, double d) {
+		features.set(i, d);
+	}
+
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		sb.append(score + " " + "qid:" + qID);

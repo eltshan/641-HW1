@@ -67,12 +67,8 @@ public class QryopSlScore extends QryopSl {
 
 		// hash docID with its score
 		InvList inv;
-		// double lambda = rIndri.getLambda();
-		// double mu = rIndri.getMu();
-		// have calculate N and avg_doclen before everything
+
 		inv = result.invertedList;
-		// double C = QryEval.READER.getSumTotalTermFreq(inv.field);
-		// double p = (double) inv.ctf / C;
 
 		for (int i = 0; i < result.invertedList.df; i++) {// for each term
 			// pointer
@@ -180,12 +176,10 @@ public class QryopSlScore extends QryopSl {
 				e.printStackTrace();
 			}
 
-			// double tf_weight = tf_td
-			// / (tf_t + k_1 * ((1 - b) + b * (doc_len / avgLen)));
-
 			double tf_weight = (tf_td / (tf_td + k_1
 					* ((1 - b) + b * (doc_len / avgLen))));
 
+			// System.out.println(idf + " " + tf_weight);
 			result.docScores.add(docID, idf * tf_weight);
 		}
 

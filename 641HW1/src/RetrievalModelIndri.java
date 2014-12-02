@@ -37,6 +37,7 @@ public class RetrievalModelIndri extends RetrievalModel {
 		// System.out.println(lengthC + "\t" + P_qc + "\t" + tf_qd + "\t" +
 		// docLength
 		// + "\t" + (first + second));
+		System.out.println(first + " " + second);
 		return first + second;
 	}
 
@@ -47,6 +48,7 @@ public class RetrievalModelIndri extends RetrievalModel {
 		double P_qc = ctf / lengthC;
 		double docLength = dls.getDocLength(field, docID);// dls.getDocLength(field,
 															// docID);
+
 		return lambda * mu * P_qc / ((double) docLength + mu) + (1 - lambda)
 				* P_qc;
 
