@@ -1,6 +1,8 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,6 +23,7 @@ public class LtoRTrainer {
 	String queryFileName;
 	String docFileName;
 	String pageRankFileName;
+	String featureVectorFileName;
 
 	public void train(String query, int qid) throws Exception {
 		System.out.println(queryFileName);
@@ -28,6 +31,8 @@ public class LtoRTrainer {
 				queryFileName)));
 		BufferedReader docBr = new BufferedReader(new FileReader(new File(
 				docFileName)));
+		BufferedWriter featureVectorBr = new BufferedWriter(new FileWriter(
+				new File(featureVectorFileName)));
 		String qryLine = null;
 		String[] parsedQryLine = null;
 		while ((qryLine = qryBr.readLine()) != null) {// for each query
@@ -47,26 +52,23 @@ public class LtoRTrainer {
 				}
 			}
 			TermVector tv = null;
-			ArrayList<LtoRFeature> featureList = new ArrayList<LtoRFeature>();
+			// ArrayList<LtoRFeature> featureList = new
+			// ArrayList<LtoRFeature>();
 
 			for (int i = 0; i < 10; i++) {// fetch each document
 				String[] docLine = docBr.readLine().split(" ");
 				String fileName = docLine[2];
-				System.out.println(fileName);
-				int score = 0;
+				// System.out.println(fileName);
+				int score = Integer.parseInt(docLine[3]);
 
-				int docId = 0;
+				int docId = QryEval.getInternalDocid(fileName);
 
 				LtoRFeature featureVector = new LtoRFeature(score, qid, 18,
 						fileName);
 				// get spam score
 				Document d = null;
-				// try {
 				d = QryEval.READER.document(docId);
-				// } catch (IOException e) {
-				// // TODO Auto-generated catch block
-				// e.printStackTrace();
-				// }
+
 				int spamscore = Integer.parseInt(d.get("score"));
 				// add spam score
 				featureVector.addFeature(spamscore);
@@ -83,7 +85,6 @@ public class LtoRTrainer {
 				// add body field related score:
 
 				// bm25 score with body
-				docId = QryEval.getInternalDocid(fileName);
 
 				Terms terms = QryEval.READER.getTermVector(docId, "body");
 				if (terms == null) {
@@ -142,8 +143,10 @@ public class LtoRTrainer {
 					// my own features
 					featureVector.addFeature(0);
 					featureVector.addFeature(1);
-					featureList.add(featureVector);
+					// featureList.add(featureVector);
 				}
+
+				featureVectorBr.write(featureVector.toString());
 			}
 
 		}

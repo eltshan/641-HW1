@@ -117,7 +117,6 @@ public class QryEval {
 					.setLambda(Double.parseDouble(params.get("Indri:lambda")));
 			modelAndri.setMu(Double.parseDouble(params.get("Indri:mu")));
 			model = modelAndri;
-			// modelAndri.setParameter("mu", params.get(arg0))
 		} else if (params.get("retrievalAlgorithm").equalsIgnoreCase("letor")) {
 			LtoRTrainer trainer = new LtoRTrainer();
 			trainer.k1 = Double.parseDouble(params.get("BM25:k_1"));
@@ -128,6 +127,8 @@ public class QryEval {
 			trainer.queryFileName = params.get("letor:trainingQueryFile");
 			trainer.docFileName = params.get("letor:trainingQrelsFile");
 			trainer.pageRankFileName = params.get("letor:pageRankFile");
+			trainer.featureVectorFileName = params
+					.get("letor:trainingFeatureVectorsFile");
 			trainer.train(null, 0);
 			System.out.println("training Done");
 		}

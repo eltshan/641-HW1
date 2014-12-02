@@ -18,10 +18,10 @@ public class LtoRFeature {
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		sb.append(score + " " + "qid:" + qID);
-		for (int i = 0; i < numOfFeatures; i++) {
+		for (int i = 0; i < features.size(); i++) {
 			sb.append(" " + (i + 1) + ":" + features.get(i));
 		}
-		sb.append(" # " + docName);
+		sb.append(" # " + docName + "\n");
 		return sb.toString();
 	}
 
