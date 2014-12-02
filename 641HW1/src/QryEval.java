@@ -161,14 +161,80 @@ public class QryEval {
 			String featureOutPutFile = params
 					.get("letor:trainingFeatureVectorsFile");
 			String modelOutPutFile = params.get("letor:svmRankModelFile");
-			// String command = learnDir + " -c 3 " + dir +
-			// "/example3/train.dat "
-			// + dir + "/example3/predictions12345";
+
 			String svmRankParamC = params.get("letor:svmRankParamC");
 			p = Runtime.getRuntime().exec(
 					new String[] { learnDir, "-c",
 							String.valueOf(svmRankParamC), featureOutPutFile,
 							modelOutPutFile });
+			// consume stdout and print it out for debugging purposes
+			// BufferedReader stdoutReader = new BufferedReader(
+			// new InputStreamReader(p.getInputStream()));
+			// String myline;
+			// while ((myline = stdoutReader.readLine()) != null) {
+			// System.out.println(myline);
+			// }
+			// // consume stderr and print it for debugging purposes
+			// BufferedReader stderrReader = new BufferedReader(
+			// new InputStreamReader(p.getErrorStream()));
+			// while ((myline = stderrReader.readLine()) != null) {
+			// System.out.println(myline);
+			// }
+
+			// get the return value from the executable. 0 means success,
+			// non-zero
+			// indicates a problem
+			int retValue = p.waitFor();
+			if (retValue != 0) {
+				throw new Exception("SVM Rank crashed.");
+			}
+			System.out.println("training Done");
+
+			RetrievalModelBM25 model25 = new RetrievalModelBM25();
+
+			model25.setParameter("k_1", params.get("BM25:k_1"));
+			model25.setParameter("b", params.get("BM25:b"));
+			model25.setParameter("k_3", params.get("BM25:k_3"));
+			model25.setDls(new DocLengthStore(READER));
+			model = model25;
+			BufferedWriter writer = new BufferedWriter(new FileWriter(new File(
+					params.get("trecEvalOutputPath"))));
+
+			String query = null;
+			while ((query = qryReader.nextQuery()) != null) {
+				System.out.println(query);
+				String[] tmp = query.split(":");
+				int queryID = Integer.parseInt(tmp[0]);
+				query = tmp[1];
+
+				Qryop qTree;
+				qTree = parseQuery(query, model);
+				writeResults(query, qTree.evaluate(model), queryID, writer,
+						model);
+			}
+			writer.close();
+			printMemoryUsage(false);
+			System.out.println(System.currentTimeMillis() - startTime);
+			System.out.println("All Done!");
+
+			trainer.queryFileName = params.get("queryFilePath");
+			trainer.docFileName = params.get("trecEvalOutputPath");
+			trainer.featureVectorFileName = params
+					.get("letor:testingFeatureVectorsFile");
+			trainer.train(disabledFeatures, pageRankScore);
+			// Process p;
+			// String learnDir = params.get("letor:svmRankLearnPath");
+			// String classifyDir = params.get("letor:svmRankClassifyPath");
+			// String featureOutPutFile = params
+			// .get("letor:trainingFeatureVectorsFile");
+			// String modelOutPutFile = params.get("letor:svmRankModelFile");
+			//
+			// String svmRankParamC = params.get("letor:svmRankParamC");
+			p = Runtime.getRuntime().exec(
+					new String[] { classifyDir, trainer.featureVectorFileName,
+							modelOutPutFile,
+							params.get("letor:testingDocumentScores") });
+
 			// consume stdout and print it out for debugging purposes
 			BufferedReader stdoutReader = new BufferedReader(
 					new InputStreamReader(p.getInputStream()));
@@ -182,15 +248,7 @@ public class QryEval {
 			while ((myline = stderrReader.readLine()) != null) {
 				System.out.println(myline);
 			}
-
-			// get the return value from the executable. 0 means success,
-			// non-zero
-			// indicates a problem
-			int retValue = p.waitFor();
-			if (retValue != 0) {
-				throw new Exception("SVM Rank crashed.");
-			}
-			System.out.println("training Done");
+			return;
 
 		}
 

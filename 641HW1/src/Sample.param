@@ -1,6 +1,6 @@
-queryFilePath=C:\Users\shen\git\641-HW1\641HW1\files\queriesMix
+queryFilePath=C:\Users\shen\git\641-HW1\641HW1\files\cw09testing.query
 indexPath=D:\download\index-1.0\index
-trecEvalOutputPath=xxxsssaaa.txt
+trecEvalOutputPath=C:\Users\shen\git\641-HW1\641HW1\files\result.txt
 retrievalAlgorithm=letor
 BM25:k_1= 1.2
 BM25:b= 0.8
@@ -24,4 +24,4 @@ letor:svmRankClassifyPath=C:\Users\shen\git\641-HW1\641HW1\files\svm_rank_window
 letor:svmRankParamC=0.001
 letor:svmRankModelFile=svmRankModelFile.txt
 letor:testingFeatureVectorsFile=testFeatureVecFile.txt
-letor:testingDocumentScores=1
+letor:testingDocumentScores=testDocScores.txt
