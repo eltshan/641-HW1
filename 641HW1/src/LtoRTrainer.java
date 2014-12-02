@@ -8,6 +8,7 @@ import java.util.HashMap;
 import javax.swing.text.html.parser.DTD;
 
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.Terms;
 import org.apache.lucene.queryparser.flexible.core.util.StringUtils;
 
 public class LtoRTrainer {
@@ -22,21 +23,21 @@ public class LtoRTrainer {
 	String pageRankFileName;
 
 	public void train(String query, int qid) throws Exception {
-		BufferedReader br = new BufferedReader(new FileReader(new File(
+		System.out.println(queryFileName);
+		BufferedReader qryBr = new BufferedReader(new FileReader(new File(
 				queryFileName)));
+		BufferedReader docBr = new BufferedReader(new FileReader(new File(
+				docFileName)));
 		String qryLine = null;
 		String[] parsedQryLine = null;
-		while ((qryLine = br.readLine()) != null) {// for each query
+		while ((qryLine = qryBr.readLine()) != null) {// for each query
 			String tmps[] = null;
 			parsedQryLine = qryLine.split(":");
 			qid = Integer.parseInt(parsedQryLine[0]);
+			query = parsedQryLine[1];
 			HashMap<String, Integer> map = new HashMap<String, Integer>();
-			try {
-				tmps = QryEval.tokenizeQuery(query);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+
+			tmps = QryEval.tokenizeQuery(query);
 
 			for (String str : tmps) {
 				if (map.containsKey(str)) {
@@ -47,8 +48,11 @@ public class LtoRTrainer {
 			}
 			TermVector tv = null;
 			ArrayList<LtoRFeature> featureList = new ArrayList<LtoRFeature>();
-			while (true) {// fetch each document
-				String fileName = null;
+
+			for (int i = 0; i < 10; i++) {// fetch each document
+				String[] docLine = docBr.readLine().split(" ");
+				String fileName = docLine[2];
+				System.out.println(fileName);
 				int score = 0;
 
 				int docId = 0;
@@ -57,12 +61,12 @@ public class LtoRTrainer {
 						fileName);
 				// get spam score
 				Document d = null;
-				try {
-					d = QryEval.READER.document(docId);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+				// try {
+				d = QryEval.READER.document(docId);
+				// } catch (IOException e) {
+				// // TODO Auto-generated catch block
+				// e.printStackTrace();
+				// }
 				int spamscore = Integer.parseInt(d.get("score"));
 				// add spam score
 				featureVector.addFeature(spamscore);
@@ -79,52 +83,67 @@ public class LtoRTrainer {
 				// add body field related score:
 
 				// bm25 score with body
-
 				docId = QryEval.getInternalDocid(fileName);
-				tv = new TermVector(docId, "body");
 
-				featureVector.addFeature(calculateBM25Score(map, tv, "body",
-						docId));
-				featureVector.addFeature(calcualteIndriScore(map, tv, "body",
-						docId));
-				featureVector.addFeature(calculateOverlapScore(map, tv));
+				Terms terms = QryEval.READER.getTermVector(docId, "body");
+				if (terms == null) {
+					// field doesn't exist!
+					// QryEval.debugOut("Doc missing field: " + docId + " " +
+					// "body");
+				} else {
+					tv = new TermVector(docId, "body");
 
+					featureVector.addFeature(calculateBM25Score(map, tv,
+							"body", docId));
+					featureVector.addFeature(calcualteIndriScore(map, tv,
+							"body", docId));
+					featureVector.addFeature(calculateOverlapScore(map, tv));
+				}
 				// title
+				terms = QryEval.READER.getTermVector(docId, "title");
+				if (terms == null) {
 
-				docId = QryEval.getInternalDocid(fileName);
-				tv = new TermVector(docId, "title");
+				} else {
+					tv = new TermVector(docId, "title");
 
-				featureVector.addFeature(calculateBM25Score(map, tv, "title",
-						docId));
-				featureVector.addFeature(calcualteIndriScore(map, tv, "title",
-						docId));
-				featureVector.addFeature(calculateOverlapScore(map, tv));
-
+					featureVector.addFeature(calculateBM25Score(map, tv,
+							"title", docId));
+					featureVector.addFeature(calcualteIndriScore(map, tv,
+							"title", docId));
+					featureVector.addFeature(calculateOverlapScore(map, tv));
+				}
 				// url
 
-				docId = QryEval.getInternalDocid(fileName);
-				tv = new TermVector(docId, "url");
+				terms = QryEval.READER.getTermVector(docId, "url");
+				if (terms == null) {
 
-				featureVector.addFeature(calculateBM25Score(map, tv, "url",
-						docId));
-				featureVector.addFeature(calcualteIndriScore(map, tv, "url",
-						docId));
-				featureVector.addFeature(calculateOverlapScore(map, tv));
+				} else {
+					tv = new TermVector(docId, "url");
 
+					featureVector.addFeature(calculateBM25Score(map, tv, "url",
+							docId));
+					featureVector.addFeature(calcualteIndriScore(map, tv,
+							"url", docId));
+					featureVector.addFeature(calculateOverlapScore(map, tv));
+				}
 				//
-				docId = QryEval.getInternalDocid(fileName);
-				tv = new TermVector(docId, "inlink");
+				terms = QryEval.READER.getTermVector(docId, "inlink");
+				if (terms == null) {
 
-				featureVector.addFeature(calculateBM25Score(map, tv, "inlink",
-						docId));
-				featureVector.addFeature(calcualteIndriScore(map, tv, "inlink",
-						docId));
-				featureVector.addFeature(calculateOverlapScore(map, tv));
+				} else {
+					tv = new TermVector(docId, "inlink");
 
-				// my own features
-				featureVector.addFeature(0);
-				featureVector.addFeature(1);
-				featureList.add(featureVector);
+					featureVector.addFeature(calculateBM25Score(map, tv,
+							"inlink", docId));
+					featureVector.addFeature(calcualteIndriScore(map, tv,
+							"inlink", docId));
+					featureVector.addFeature(calculateOverlapScore(map, tv));
+
+					// my own features
+					featureVector.addFeature(0);
+					featureVector.addFeature(1);
+					featureList.add(featureVector);
+				}
 			}
 
 		}
@@ -180,7 +199,7 @@ public class LtoRTrainer {
 
 		double docLength = QryEval.s.getDocLength(field, docid);
 
-		for (int i = 0; i < tv.stems.length; i++) {
+		for (int i = 1; i < tv.stems.length; i++) {
 			// if the term appears in the query
 			tf_qd = 0;
 			if (stringTerms.containsKey(tv.stemAt(i))) {

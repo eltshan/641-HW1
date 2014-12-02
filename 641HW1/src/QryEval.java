@@ -124,11 +124,12 @@ public class QryEval {
 			trainer.k3 = Double.parseDouble(params.get("BM25:k_3"));
 			trainer.b = Double.parseDouble(params.get("BM25:b"));
 			trainer.mu = Double.parseDouble(params.get("Indri:mu"));
-			trainer.lambda = Double.parseDouble(params
-					.get("Indri:Indri:lambda"));
-			trainer.queryFileName = params.get("BM25:k_1");
-			trainer.docFileName = params.get("BM25:k_1");
-			trainer.pageRankFileName = params.get("BM25:k_1");
+			trainer.lambda = Double.parseDouble(params.get("Indri:lambda"));
+			trainer.queryFileName = params.get("letor:trainingQueryFile");
+			trainer.docFileName = params.get("letor:trainingQrelsFile");
+			trainer.pageRankFileName = params.get("letor:pageRankFile");
+			trainer.train(null, 0);
+			System.out.println("training Done");
 		}
 
 		BufferedWriter writer = new BufferedWriter(new FileWriter(new File(
