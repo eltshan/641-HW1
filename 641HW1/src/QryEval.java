@@ -238,19 +238,19 @@ public class QryEval {
 							modelOutPutFile,
 							params.get("letor:testingDocumentScores") });
 
-			// consume stdout and print it out for debugging purposes
-			BufferedReader stdoutReader = new BufferedReader(
-					new InputStreamReader(p.getInputStream()));
-			String myline;
-			while ((myline = stdoutReader.readLine()) != null) {
-				System.out.println(myline);
-			}
-			// consume stderr and print it for debugging purposes
-			BufferedReader stderrReader = new BufferedReader(
-					new InputStreamReader(p.getErrorStream()));
-			while ((myline = stderrReader.readLine()) != null) {
-				System.out.println(myline);
-			}
+			// // consume stdout and print it out for debugging purposes
+			// BufferedReader stdoutReader = new BufferedReader(
+			// new InputStreamReader(p.getInputStream()));
+			// String myline;
+			// while ((myline = stdoutReader.readLine()) != null) {
+			// System.out.println(myline);
+			// }
+			// // consume stderr and print it for debugging purposes
+			// BufferedReader stderrReader = new BufferedReader(
+			// new InputStreamReader(p.getErrorStream()));
+			// while ((myline = stderrReader.readLine()) != null) {
+			// System.out.println(myline);
+			// }
 			return;
 
 		}

@@ -42,6 +42,7 @@ public class LtoRTrainer {
 		String query = null;
 		String[] parsedQryLine = null;
 		String[] nextDocLine = docBr.readLine().split(" ");
+		Double nonValue = Double.MAX_VALUE;
 		while ((qryLine = qryBr.readLine()) != null) {// for each query
 			String tmps[] = null;
 			parsedQryLine = qryLine.split(":");
@@ -82,7 +83,7 @@ public class LtoRTrainer {
 				d = QryEval.READER.document(docId);
 				// 1, get spam score
 				if (SkippedFeatures.contains(1)) {
-					featureVector.addFeature(0);
+					featureVector.addFeature(nonValue);
 				} else {
 
 					int spamscore = Integer.parseInt(d.get("score"));
@@ -93,7 +94,7 @@ public class LtoRTrainer {
 				String rawUrl = d.get("rawUrl");
 
 				if (SkippedFeatures.contains(2)) {
-					featureVector.addFeature(0);
+					featureVector.addFeature(nonValue);
 				} else {
 					int numOfSlash = rawUrl.length()
 							- rawUrl.replace("/", "").length();
@@ -102,7 +103,7 @@ public class LtoRTrainer {
 
 				// 3, add wiki score
 				if (SkippedFeatures.contains(3)) {
-					featureVector.addFeature(0);
+					featureVector.addFeature(nonValue);
 				} else {
 					int wikiScore = rawUrl.contains("wikipedia.org") ? 1 : 0;
 					featureVector.addFeature(wikiScore);
@@ -110,7 +111,7 @@ public class LtoRTrainer {
 				// 4, addd page rank score
 				if (SkippedFeatures.contains(4)
 						|| pageRankScore.get(fileName) == null)
-					featureVector.addFeature(0);
+					featureVector.addFeature(nonValue);
 				else {
 					featureVector.addFeature(pageRankScore.get(fileName));
 				}
@@ -120,9 +121,9 @@ public class LtoRTrainer {
 				Terms terms = QryEval.READER.getTermVector(docId, field);
 				if (terms == null) {
 					// field doesn't exist!
-					featureVector.addFeature(0);
-					featureVector.addFeature(0);
-					featureVector.addFeature(0);
+					featureVector.addFeature(nonValue);
+					featureVector.addFeature(nonValue);
+					featureVector.addFeature(nonValue);
 
 				} else {
 					tv = new TermVector(docId, field);
@@ -130,92 +131,92 @@ public class LtoRTrainer {
 						featureVector.addFeature(calculateBM25Score(map, tv,
 								field, docId));
 					else
-						featureVector.addFeature(0);
+						featureVector.addFeature(nonValue);
 					if (!SkippedFeatures.contains(6))
 						featureVector.addFeature(calcualteIndriScore(map, tv,
 								field, docId));
 					else
-						featureVector.addFeature(0);
+						featureVector.addFeature(nonValue);
 					if (!SkippedFeatures.contains(7))
 						featureVector
 								.addFeature(calculateOverlapScore(map, tv));
 					else
-						featureVector.addFeature(0);
+						featureVector.addFeature(nonValue);
 				}
 				// 8,9,10 score related to title
 				field = "title";
 				terms = QryEval.READER.getTermVector(docId, field);
 				if (terms == null) {
-					featureVector.addFeature(0);
-					featureVector.addFeature(0);
-					featureVector.addFeature(0);
+					featureVector.addFeature(nonValue);
+					featureVector.addFeature(nonValue);
+					featureVector.addFeature(nonValue);
 				} else {
 					tv = new TermVector(docId, field);
 					if (!SkippedFeatures.contains(8))
 						featureVector.addFeature(calculateBM25Score(map, tv,
 								field, docId));
 					else
-						featureVector.addFeature(0);
+						featureVector.addFeature(nonValue);
 					if (!SkippedFeatures.contains(9))
 						featureVector.addFeature(calcualteIndriScore(map, tv,
 								field, docId));
 					else
-						featureVector.addFeature(0);
+						featureVector.addFeature(nonValue);
 					if (!SkippedFeatures.contains(10))
 						featureVector
 								.addFeature(calculateOverlapScore(map, tv));
 					else
-						featureVector.addFeature(0);
+						featureVector.addFeature(nonValue);
 				}
 				// 11,12,13 score related to url
 				field = "url";
 				terms = QryEval.READER.getTermVector(docId, field);
 				if (terms == null) {
-					featureVector.addFeature(0);
-					featureVector.addFeature(0);
-					featureVector.addFeature(0);
+					featureVector.addFeature(nonValue);
+					featureVector.addFeature(nonValue);
+					featureVector.addFeature(nonValue);
 				} else {
 					tv = new TermVector(docId, field);
 					if (!SkippedFeatures.contains(11))
 						featureVector.addFeature(calculateBM25Score(map, tv,
 								field, docId));
 					else
-						featureVector.addFeature(0);
+						featureVector.addFeature(nonValue);
 					if (!SkippedFeatures.contains(12))
 						featureVector.addFeature(calcualteIndriScore(map, tv,
 								field, docId));
 					else
-						featureVector.addFeature(0);
+						featureVector.addFeature(nonValue);
 					if (!SkippedFeatures.contains(13))
 						featureVector
 								.addFeature(calculateOverlapScore(map, tv));
 					else
-						featureVector.addFeature(0);
+						featureVector.addFeature(nonValue);
 				}
 				// 14,15,16 score related to inlink
 				field = "inlink";
 				terms = QryEval.READER.getTermVector(docId, field);
 				if (terms == null) {
-					featureVector.addFeature(0);
-					featureVector.addFeature(0);
-					featureVector.addFeature(0);
+					featureVector.addFeature(nonValue);
+					featureVector.addFeature(nonValue);
+					featureVector.addFeature(nonValue);
 				} else {
 					tv = new TermVector(docId, field);
 					if (!SkippedFeatures.contains(14))
 						featureVector.addFeature(calculateBM25Score(map, tv,
 								field, docId));
 					else
-						featureVector.addFeature(0);
+						featureVector.addFeature(nonValue);
 					if (!SkippedFeatures.contains(15))
 						featureVector.addFeature(calcualteIndriScore(map, tv,
 								field, docId));
 					else
-						featureVector.addFeature(0);
+						featureVector.addFeature(nonValue);
 					if (!SkippedFeatures.contains(16))
 						featureVector
 								.addFeature(calculateOverlapScore(map, tv));
 					else
-						featureVector.addFeature(0);
+						featureVector.addFeature(nonValue);
 					// my own features
 
 					// featureList.add(featureVector);
@@ -237,12 +238,12 @@ public class LtoRTrainer {
 	}
 
 	public void normalize(ArrayList<LtoRFeature> qryVector) {
-
+		double nonValue = Double.MAX_VALUE;
 		for (int i = 0; i < 18; i++) {
 			double maxValue = Integer.MIN_VALUE;
 			double minValue = Integer.MAX_VALUE;
 			for (int j = 0; j < qryVector.size(); j++) {
-				if (qryVector.get(j).getFeature(i) == 0.0)
+				if (qryVector.get(j).getFeature(i) == nonValue)
 					continue;
 
 				if (qryVector.get(j).getFeature(i) > maxValue) {
@@ -260,13 +261,13 @@ public class LtoRTrainer {
 			} else {
 				for (int j = 0; j < qryVector.size(); j++) {
 
-					if (qryVector.get(j).getFeature(i) == 0.0)
-						continue;
-
-					qryVector.get(j).setFeature(
-							i,
-							(qryVector.get(j).getFeature(i) - minValue)
-									/ (maxValue - minValue));
+					if (qryVector.get(j).getFeature(i) == nonValue)
+						qryVector.get(j).setFeature(i, 0);
+					else
+						qryVector.get(j).setFeature(
+								i,
+								(qryVector.get(j).getFeature(i) - minValue)
+										/ (maxValue - minValue));
 				}
 			}
 		}
@@ -280,7 +281,7 @@ public class LtoRTrainer {
 				overlapScore += 1;
 			}
 		}
-		System.out.println(overlapScore / map.size());
+		// System.out.println(overlapScore / map.size());
 		return overlapScore / map.size();
 
 	}
@@ -294,7 +295,7 @@ public class LtoRTrainer {
 		int qtf_t = 0;
 		int N = 0;
 		double bm25Score = 0.0;
-
+		int logN = 0;
 		for (int i = 1; i < tv.stems.length; i++) {
 			if (!stringTerms.containsKey(tv.stems[i])) {
 				continue;
@@ -302,9 +303,11 @@ public class LtoRTrainer {
 			df_t = tv.stemDf(i);
 			tf_t = tv.stemFreq(i);
 			doclen = (int) QryEval.s.getDocLength(field, docId);
-			N = QryEval.READER.numDocs();
+			N = QryEval.READER.getDocCount(field);
+
+			logN = QryEval.READER.numDocs();
 			avgLength = (double) (QryEval.READER.getSumTotalTermFreq(field) / N);
-			double idf = Math.log((N - df_t + 0.5) / (df_t + 0.5));
+			double idf = Math.log((logN - df_t + 0.5) / (df_t + 0.5));
 			double tf_weight = tf_t
 					/ (tf_t + k1 * ((1 - b) + b * (doclen / avgLength)));
 
