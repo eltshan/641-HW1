@@ -176,17 +176,17 @@ public class LtoRTrainer {
 					featureVector.addFeature(0);
 				} else {
 					tv = new TermVector(docId, field);
-					if (!SkippedFeatures.contains(8))
+					if (!SkippedFeatures.contains(11))
 						featureVector.addFeature(calculateBM25Score(map, tv,
 								field, docId));
 					else
 						featureVector.addFeature(0);
-					if (!SkippedFeatures.contains(9))
+					if (!SkippedFeatures.contains(12))
 						featureVector.addFeature(calcualteIndriScore(map, tv,
 								field, docId));
 					else
 						featureVector.addFeature(0);
-					if (!SkippedFeatures.contains(10))
+					if (!SkippedFeatures.contains(13))
 						featureVector
 								.addFeature(calculateOverlapScore(map, tv));
 					else
@@ -201,17 +201,17 @@ public class LtoRTrainer {
 					featureVector.addFeature(0);
 				} else {
 					tv = new TermVector(docId, field);
-					if (!SkippedFeatures.contains(8))
+					if (!SkippedFeatures.contains(14))
 						featureVector.addFeature(calculateBM25Score(map, tv,
 								field, docId));
 					else
 						featureVector.addFeature(0);
-					if (!SkippedFeatures.contains(9))
+					if (!SkippedFeatures.contains(15))
 						featureVector.addFeature(calcualteIndriScore(map, tv,
 								field, docId));
 					else
 						featureVector.addFeature(0);
-					if (!SkippedFeatures.contains(10))
+					if (!SkippedFeatures.contains(16))
 						featureVector
 								.addFeature(calculateOverlapScore(map, tv));
 					else
@@ -220,7 +220,7 @@ public class LtoRTrainer {
 
 					// featureList.add(featureVector);
 				}
-				featureVector.addFeature(0);
+				featureVector.addFeature(1);
 				featureVector.addFeature(1);
 				qryVector.add(featureVector);
 				// featureVectorBr.write(featureVector.toString());
@@ -259,6 +259,10 @@ public class LtoRTrainer {
 				}
 			} else {
 				for (int j = 0; j < qryVector.size(); j++) {
+
+					if (qryVector.get(j).getFeature(i) == 0.0)
+						continue;
+
 					qryVector.get(j).setFeature(
 							i,
 							(qryVector.get(j).getFeature(i) - minValue)
@@ -271,11 +275,12 @@ public class LtoRTrainer {
 	public double calculateOverlapScore(HashMap<String, Integer> map,
 			TermVector tv) {
 		double overlapScore = 0;
-		for (int i = 0; i < tv.stems.length; i++) {
+		for (int i = 1; i < tv.stems.length; i++) {
 			if (map.containsKey(tv.stems[i])) {
 				overlapScore += 1;
 			}
 		}
+		System.out.println(overlapScore / map.size());
 		return overlapScore / map.size();
 
 	}
@@ -331,7 +336,6 @@ public class LtoRTrainer {
 
 			double first = lambda * (tf_qd + mu * P_qc) / (docLength + mu);
 			double second = (1 - lambda) * P_qc;
-			// System.out.println(first + " " + second);
 			indriScore *= (first + second);
 		}
 
@@ -346,12 +350,10 @@ public class LtoRTrainer {
 
 			double first = lambda * (tf_qd + mu * P_qc) / (docLength + mu);
 			double second = (1 - lambda) * P_qc;
-			// System.out.println(first + " " + second);
 			indriScore *= (first + second);
 		}
 		tmpCopy.clear();
 		indriScore = Math.pow(indriScore, 1.0 / stringTerms.size());
-		// System.out.println(indriScore);
 		return indriScore;
 	}
 

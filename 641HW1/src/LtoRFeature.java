@@ -53,15 +53,4 @@ public class LtoRFeature {
 		features.add(t);
 	}
 
-	static public void getSpamScore() {
-		// to do: read score from index
-	}
-
-	static public void getUrlDepth() {
-		// £¿
-	}
-
-	static public void getWikiScore() {
-
-	}
 }

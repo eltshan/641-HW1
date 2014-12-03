@@ -120,11 +120,14 @@ public class QryEval {
 		} else if (params.get("retrievalAlgorithm").equalsIgnoreCase("letor")) {
 
 			HashSet<Integer> disabledFeatures = new HashSet<Integer>();
-			String[] disfeatures = params.get("letor:featureDisable")
-					.split(",");
-			for (String tmp : disfeatures) {
-				if (isInteger(tmp)) {
-					disabledFeatures.add(Integer.parseInt(tmp));
+
+			if (params.get("letor:featureDisable= ") != null) {
+				String[] disfeatures = params.get("letor:featureDisable")
+						.split(",");
+				for (String tmp : disfeatures) {
+					if (isInteger(tmp)) {
+						disabledFeatures.add(Integer.parseInt(tmp));
+					}
 				}
 			}
 			LtoRTrainer trainer = new LtoRTrainer();
@@ -341,6 +344,10 @@ public class QryEval {
 
 		printMemoryUsage(false);
 		System.out.println(System.currentTimeMillis() - startTime);
+	}
+
+	static void reRank(String inFile, String outFile) {
+		// HashMap<K, V>
 	}
 
 	/**
